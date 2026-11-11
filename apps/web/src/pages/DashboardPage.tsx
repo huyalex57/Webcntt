@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthContext';
-import { useEnrollments } from '../features/courses/hooks';
-import { useCourses } from '../features/resources/hooks';
-import { useExams } from '../features/exams/hooks';
+import { useCourses, useEnrollments } from '../features/courses/api';
+import { useExams } from '../features/exams/api';
 import { Badge, Button, Card, PageHeader, QuotaBar } from '../components/ui';
 import { getDailyCount } from '../lib/utils';
 import { aiQuotaLimit } from '../lib/gating';

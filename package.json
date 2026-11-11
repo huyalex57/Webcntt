@@ -2,10 +2,15 @@
   "name": "devstudy-hub",
   "private": true,
   "version": "0.1.0",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace=@devstudy/web",
-    "build": "npm run build --workspace=@devstudy/web",
-    "build:shared": "npm run build --workspace=@devstudy/shared"
+    "build": "npm run build:shared && npm run build --workspace=@devstudy/web",
+    "build:shared": "npm run build --workspace=@devstudy/shared",
+    "lint": "echo 'No linter configured yet'",
+    "test": "echo 'No tests configured yet'"
   }
 }

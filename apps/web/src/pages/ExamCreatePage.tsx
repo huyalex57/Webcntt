@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateExamSchema, LANGUAGE_LABELS, type CodeLanguage, type CreateExamInput } from '@devstudy/shared';
-import { useCreateExam } from '../features/exams/hooks';
+import { useCreateExam } from '../features/exams/api';
 import { useAuth } from '../features/auth/AuthContext';
 import { useToast } from '../lib/toast';
 import { canCreateExam, examCreateBlockReason } from '../lib/gating';
@@ -20,8 +20,39 @@ export default function ExamCreatePage() {
     return <div><PageHeader title="Tạo kỳ thi lập trình" /><EmptyState title="Bạn chưa đủ điều kiện tạo kỳ thi" hint={examCreateBlockReason(session) ?? ''} action={<Button onClick={() => nav('/pricing')}>Xem gói Premium</Button>} /></div>;
   }
   const onSubmit = async (v: CreateExamInput) => {
-    const exam = await create.mutateAsync({ ...v, languages: langs });
-    toast.push(`Đã tạo kỳ thi “${exam.title}” ở trạng thái DRAFT — thêm problem & test case rồi Publish`);
+    const formattedProblems = problems
+      .filter((p) => p.title.trim().length > 0)
+      .map((p, i) => ({
+        id: `p-${Date.now()}-${i + 1}`,
+        title: p.title,
+        statement: p.statement,
+        points: p.points,
+        timeLimitMs: 1000,
+        memoryLimitMb: 256,
+        testCases: [
+          {
+            id: `tc-${Date.now()}-${i + 1}-1`,
+            input: '1',
+            expectedOutput: '1',
+            hidden: false,
+            points: Math.round(p.points / 2),
+          },
+          {
+            id: `tc-${Date.now()}-${i + 1}-2`,
+            input: '2',
+            expectedOutput: '2',
+            hidden: true,
+            points: p.points - Math.round(p.points / 2),
+          },
+        ],
+      }));
+
+    const exam = await create.mutateAsync({
+      ...v,
+      languages: langs,
+      problems: formattedProblems,
+    });
+    toast.push(`Đã tạo kỳ thi “${exam.title}” ở trạng thái DRAFT với ${formattedProblems.length} bài tập`);
     nav(`/exams/${exam.id}`);
   };
   return (

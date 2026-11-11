@@ -13,7 +13,7 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState('');
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterInput>({ resolver: zodResolver(RegisterSchema), defaultValues: { university: SCHOOLS[0], agree: false } });
   const onSubmit = async (v: RegisterInput) => {
-    try { await doRegister(v.displayName, v.email); toast.push('Tạo tài khoản thành công — role mặc định STUDENT (Free)'); nav('/dashboard'); }
+    try { await doRegister(v.displayName, v.email, v.studentId, v.university); toast.push('Tạo tài khoản thành công — role mặc định STUDENT (Free)'); nav('/dashboard'); }
     catch { setServerError('Không tạo được tài khoản, thử lại sau.'); }
   };
   return (

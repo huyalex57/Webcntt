@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { LANGUAGE_LABELS, type CodeLanguage } from '@devstudy/shared';
-import { useExam } from '../features/exams/hooks';
+import { useExam } from '../features/exams/api';
 import { runCode } from '../lib/api';
 import { useToast } from '../lib/toast';
 import { Badge, Button, Card, EmptyState, Field, Select, Textarea } from '../components/ui';
@@ -36,11 +36,19 @@ export default function ExamDetailPage() {
   const mm = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
   const ss = String(secondsLeft % 60).padStart(2, '0');
   const submit = async () => {
-    const res = await runCode(code, lang, problem.testCases[0]?.input ?? '');
-    const passed = res.status === 'AC' ? problem.testCases.filter((t) => !t.hidden).length : 0;
+    let passedCount = 0;
+    let overallStatus = 'AC';
+    for (const tc of problem.testCases) {
+      const res = await runCode(code, lang, tc.input);
+      if (res.status !== 'AC') {
+        overallStatus = res.status;
+      } else {
+        passedCount++;
+      }
+    }
     const total = problem.testCases.length;
-    setSubmitted((s) => ({ ...s, [problem.id]: { status: res.status, passed, total } }));
-    toast.push(`Đã nộp bài “${problem.title}”: ${res.status} — ${passed}/${total} test (mock chấm)`);
+    setSubmitted((s) => ({ ...s, [problem.id]: { status: overallStatus, passed: passedCount, total } }));
+    toast.push(`Đã nộp bài “${problem.title}”: ${overallStatus} — ${passedCount}/${total} test`);
   };
   const score = Object.entries(submitted).reduce((sum, [pid, r]) => { const p = exam.problems.find((x) => x.id === pid); return sum + (p ? Math.round(p.points * r.passed / Math.max(1, r.total)) : 0); }, 0);
   return (

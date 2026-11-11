@@ -1,57 +1,199 @@
-import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
-import { AppLayout, PublicLayout } from '../components/Layout';
-import { useAuth } from '../features/auth/AuthContext';
-import type { JSX } from 'react';
-import HomePage from '../pages/HomePage';
-import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
-import DashboardPage from '../pages/DashboardPage';
-import ResourcesPage from '../pages/ResourcesPage';
-import ResourceDetailPage from '../pages/ResourceDetailPage';
-import CoursesPage from '../pages/CoursesPage';
-import CourseDetailPage from '../pages/CourseDetailPage';
-import MyCoursesPage from '../pages/MyCoursesPage';
-import PracticePage from '../pages/PracticePage';
-import PlaygroundPage from '../pages/PlaygroundPage';
-import ExamsPage from '../pages/ExamsPage';
-import ExamDetailPage from '../pages/ExamDetailPage';
-import ExamCreatePage from '../pages/ExamCreatePage';
-import PricingPage from '../pages/PricingPage';
-import AdminPage from '../pages/AdminPage';
+import { lazy, Suspense } from 'react';
+import { createBrowserRouter, type RouteObject } from 'react-router-dom';
+import { AppLayout, PublicLayout } from '../components/layout';
+import { RequireAuth, RequirePlan, RequireRole } from './guards';
 
-function RequireAuth({ children }: { children: JSX.Element }) {
-  const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace state={{ redirect: location.pathname }} />;
-  return children;
-}
+const LoadingFallback = () => (
+  <div className="flex h-64 items-center justify-center">
+    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+  </div>
+);
+
+const HomePage = lazy(() => import('../pages/HomePage'));
+const LoginPage = lazy(() => import('../pages/LoginPage'));
+const RegisterPage = lazy(() => import('../pages/RegisterPage'));
+const DashboardPage = lazy(() => import('../pages/DashboardPage'));
+const ResourcesPage = lazy(() => import('../pages/ResourcesPage'));
+const ResourceDetailPage = lazy(() => import('../pages/ResourceDetailPage'));
+const CoursesPage = lazy(() => import('../pages/CoursesPage'));
+const CourseDetailPage = lazy(() => import('../pages/CourseDetailPage'));
+const MyCoursesPage = lazy(() => import('../pages/MyCoursesPage'));
+const PracticePage = lazy(() => import('../pages/PracticePage'));
+const PlaygroundPage = lazy(() => import('../pages/PlaygroundPage'));
+const ExamsPage = lazy(() => import('../pages/ExamsPage'));
+const ExamDetailPage = lazy(() => import('../pages/ExamDetailPage'));
+const ExamCreatePage = lazy(() => import('../pages/ExamCreatePage'));
+const PricingPage = lazy(() => import('../pages/PricingPage'));
+const AdminPage = lazy(() => import('../pages/AdminPage'));
 
 const routes: RouteObject[] = [
   {
     element: <PublicLayout />,
     children: [
-      { path: '/', element: <HomePage /> },
-      { path: '/login', element: <LoginPage /> },
-      { path: '/register', element: <RegisterPage /> },
-      { path: '/pricing', element: <PricingPage /> },
+      {
+        path: '/',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <HomePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/login',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <LoginPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/register',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <RegisterPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/pricing',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <PricingPage />
+          </Suspense>
+        ),
+      },
     ],
   },
   {
     element: <AppLayout />,
     children: [
-      { path: '/dashboard', element: <RequireAuth><DashboardPage /></RequireAuth> },
-      { path: '/resources', element: <ResourcesPage /> },
-      { path: '/resources/:id', element: <ResourceDetailPage /> },
-      { path: '/courses', element: <CoursesPage /> },
-      { path: '/courses/:id', element: <CourseDetailPage /> },
-      { path: '/my-courses', element: <RequireAuth><MyCoursesPage /></RequireAuth> },
-      { path: '/practice', element: <RequireAuth><PracticePage /></RequireAuth> },
-      { path: '/playground', element: <RequireAuth><PlaygroundPage /></RequireAuth> },
-      { path: '/exams', element: <ExamsPage /> },
-      { path: '/exams/new', element: <RequireAuth><ExamCreatePage /></RequireAuth> },
-      { path: '/exams/:id', element: <RequireAuth><ExamDetailPage /></RequireAuth> },
-      { path: '/admin', element: <RequireAuth><AdminPage /></RequireAuth> },
-      { path: '*', element: <div className="rounded-lg border border-border bg-white p-8 text-center"><h1 className="text-xl font-bold">Không tìm thấy trang</h1><p className="mt-2 text-sm text-slate-500">Đường dẫn bạn truy cập không tồn tại.</p></div> },
+      {
+        path: '/dashboard',
+        element: (
+          <RequireAuth>
+            <Suspense fallback={<LoadingFallback />}>
+              <DashboardPage />
+            </Suspense>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/resources',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ResourcesPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/resources/:id',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ResourceDetailPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/courses',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <CoursesPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/courses/:id',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <CourseDetailPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/my-courses',
+        element: (
+          <RequireAuth>
+            <Suspense fallback={<LoadingFallback />}>
+              <MyCoursesPage />
+            </Suspense>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/practice',
+        element: (
+          <RequireAuth>
+            <Suspense fallback={<LoadingFallback />}>
+              <PracticePage />
+            </Suspense>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/playground',
+        element: (
+          <RequireAuth>
+            <Suspense fallback={<LoadingFallback />}>
+              <PlaygroundPage />
+            </Suspense>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/exams',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ExamsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/exams/new',
+        element: (
+          <RequireAuth>
+            <RequireRole allowed={['LECTURER', 'ADMIN']}>
+              <RequirePlan min="PREMIUM">
+                <Suspense fallback={<LoadingFallback />}>
+                  <ExamCreatePage />
+                </Suspense>
+              </RequirePlan>
+            </RequireRole>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/exams/:id',
+        element: (
+          <RequireAuth>
+            <Suspense fallback={<LoadingFallback />}>
+              <ExamDetailPage />
+            </Suspense>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/admin',
+        element: (
+          <RequireAuth>
+            <RequireRole allowed={['ADMIN', 'MODERATOR']}>
+              <Suspense fallback={<LoadingFallback />}>
+                <AdminPage />
+              </Suspense>
+            </RequireRole>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '*',
+        element: (
+          <div className="rounded-lg border border-border bg-white p-8 text-center">
+            <h1 className="text-xl font-bold">Không tìm thấy trang</h1>
+            <p className="mt-2 text-sm text-slate-500">Đường dẫn bạn truy cập không tồn tại.</p>
+          </div>
+        ),
+      },
     ],
   },
 ];
+
 export const router = createBrowserRouter(routes);

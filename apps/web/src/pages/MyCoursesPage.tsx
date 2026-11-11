@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useCourses } from '../features/resources/hooks';
-import { useEnrollments, useMarkLessonDone } from '../features/courses/hooks';
+import { useCourses, useEnrollments } from '../features/courses/api';
 import { Badge, Button, Card, EmptyState, PageHeader } from '../components/ui';
 
 export default function MyCoursesPage() {

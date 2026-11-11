@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { useCourses, useResources } from '../features/resources/hooks';
+import { useResources } from '../features/resources/api';
+import { useCourses } from '../features/courses/api';
 import { Badge, Button, Card } from '../components/ui';
 import { formatVND } from '../lib/utils';
 import { useAuth } from '../features/auth/AuthContext';
