@@ -43,7 +43,9 @@ export const ResourceSchema = z.object({
   rating: z.number(),
   ratingCount: z.number(),
   fileSize: z.string(),
+  fileUrl: z.string().optional(),
   tags: z.array(z.string()),
+  uploaderId: z.string().optional(),
   createdAt: z.string().datetime().or(z.string()),
 });
 export type Resource = z.infer<typeof ResourceSchema>;
@@ -54,3 +56,25 @@ export const ReportSchema = z.object({
   detail: z.string().min(10, 'Mô tả tối thiểu 10 ký tự'),
 });
 export type ReportInput = z.infer<typeof ReportSchema>;
+
+export const ContributeResourceSchema = z.object({
+  title: z.string().min(5, 'Tiêu đề tài liệu tối thiểu 5 ký tự'),
+  description: z.string().min(10, 'Mô tả chi tiết tài liệu tối thiểu 10 ký tự'),
+  topic: TopicSchema,
+  type: ResourceTypeSchema,
+  language: z.string().min(1, 'Chọn ngôn ngữ / định dạng'),
+  fileUrl: z.string().min(3, 'Nhập link Google Drive/OneDrive hoặc tên file tải lên'),
+  tags: z.string().min(1, 'Nhập ít nhất 1 tag (cách nhau bởi dấu phẩy)'),
+});
+export type ContributeResourceInput = z.infer<typeof ContributeResourceSchema>;
+
+export interface ResourceComment {
+  id: string;
+  resourceId: string;
+  author: string;
+  userRole?: string;
+  content: string;
+  rating?: number;
+  createdAt: string;
+  replies?: ResourceComment[];
+}

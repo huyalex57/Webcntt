@@ -17,6 +17,7 @@ export const UserSchema = z.object({
   plan: PlanTierSchema,
   studentId: z.string().optional(),
   university: z.string().optional(),
+  major: z.string().optional(),
   emailVerified: z.boolean().default(true),
 });
 export type User = z.infer<typeof UserSchema>;
@@ -35,5 +36,40 @@ export const RegisterSchema = z.object({
   password: z.string().min(8, 'Mật khẩu tối thiểu 8 ký tự'),
   confirmPassword: z.string(),
   agree: z.boolean().refine((v) => v, 'Bạn cần đồng ý điều khoản học vụ'),
-}).refine((d) => d.password === d.confirmPassword, { message: 'Mật khẩu xác nhận không khớp', path: ['confirmPassword'] });
+}).refine((d) => d.password === d.confirmPassword, {
+  message: 'Mật khẩu xác nhận không khớp',
+  path: ['confirmPassword'],
+});
 export type RegisterInput = z.infer<typeof RegisterSchema>;
+
+export const ForgotPasswordSchema = z.object({
+  email: z.string().email('Vui lòng nhập địa chỉ email hợp lệ'),
+});
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
+
+export const ResetPasswordSchema = z.object({
+  password: z.string().min(8, 'Mật khẩu mới tối thiểu 8 ký tự'),
+  confirmPassword: z.string(),
+}).refine((d) => d.password === d.confirmPassword, {
+  message: 'Mật khẩu xác nhận không khớp',
+  path: ['confirmPassword'],
+});
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
+
+export const UpdateProfileSchema = z.object({
+  displayName: z.string().min(2, 'Họ và tên tối thiểu 2 ký tự'),
+  studentId: z.string().optional(),
+  university: z.string().optional(),
+  major: z.string().optional(),
+});
+export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
+
+export const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(6, 'Vui lòng nhập mật khẩu hiện tại'),
+  newPassword: z.string().min(8, 'Mật khẩu mới tối thiểu 8 ký tự'),
+  confirmNewPassword: z.string(),
+}).refine((d) => d.newPassword === d.confirmNewPassword, {
+  message: 'Mật khẩu xác nhận không khớp',
+  path: ['confirmNewPassword'],
+});
+export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;

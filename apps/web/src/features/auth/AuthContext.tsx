@@ -1,15 +1,38 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { PlanTier, Role, User } from '@devstudy/shared';
+import type { PlanTier, Role, User, UpdateProfileInput } from '@devstudy/shared';
 import { loadJSON, saveJSON } from '../../lib/utils';
 
-export interface DemoIdentity { key: string; label: string; user: User | null; }
-const mk = (id: string, email: string, displayName: string, role: Role, plan: PlanTier, studentId?: string, university?: string): User =>
-  ({ id, email, displayName, role, plan, studentId, university: university || 'ĐH Bách Khoa Hà Nội', emailVerified: true });
+export interface DemoIdentity {
+  key: string;
+  label: string;
+  user: User | null;
+}
+
+const mk = (
+  id: string,
+  email: string,
+  displayName: string,
+  role: Role,
+  plan: PlanTier,
+  studentId?: string,
+  university?: string,
+  major?: string
+): User => ({
+  id,
+  email,
+  displayName,
+  role,
+  plan,
+  studentId,
+  university: university || 'ĐH Bách Khoa Hà Nội',
+  major: major || 'Khoa học Máy tính',
+  emailVerified: true,
+});
 
 export const DEMO_IDENTITIES: DemoIdentity[] = [
   { key: 'guest', label: 'Guest (chưa đăng nhập)', user: null },
-  { key: 'student-free', label: 'STUDENT · Free', user: mk('u-student-free', 'huy.nd@edu.vn', 'Nguyễn Đức Huy', 'STUDENT', 'FREE', '20220001') },
-  { key: 'student-premium', label: 'STUDENT · Premium', user: mk('u-student-pro', 'linh.tt@edu.vn', 'Trần Thu Linh', 'STUDENT', 'PREMIUM', '20220042') },
+  { key: 'student-free', label: 'STUDENT · Free', user: mk('u-student-free', 'huy.nd@edu.vn', 'Nguyễn Đức Huy', 'STUDENT', 'FREE', '20220001', 'ĐH Bách Khoa Hà Nội', 'Kỹ thuật Phần mềm') },
+  { key: 'student-premium', label: 'STUDENT · Premium', user: mk('u-student-pro', 'linh.tt@edu.vn', 'Trần Thu Linh', 'STUDENT', 'PREMIUM', '20220042', 'ĐH Khoa học Tự nhiên', 'Khoa học Dữ liệu') },
   { key: 'lecturer-free', label: 'LECTURER · Free', user: mk('u-lect-free', 'tuan.tm@hust.edu.vn', 'TS. Trần Minh Tuấn', 'LECTURER', 'FREE') },
   { key: 'lecturer-premium', label: 'LECTURER · Premium', user: mk('u-lect-pro', 'bao.tq@hust.edu.vn', 'TS. Trịnh Quốc Bảo', 'LECTURER', 'PREMIUM') },
   { key: 'moderator', label: 'MODERATOR', user: mk('u-mod', 'mod@devstudy.edu.vn', 'Kiểm duyệt viên', 'MODERATOR', 'FREE') },
@@ -25,7 +48,12 @@ interface AuthValue {
   logout: () => void;
   switchDemo: (key: string) => void;
   upgradeToPremium: () => void;
+  updateProfile: (data: UpdateProfileInput) => Promise<User>;
+  changePassword: (currentPass: string, newPass: string) => Promise<boolean>;
+  forgotPassword: (email: string) => Promise<boolean>;
+  resetPassword: (token: string, newPass: string) => Promise<boolean>;
 }
+
 const AuthCtx = createContext<AuthValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -91,9 +119,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const updateProfile = useCallback(async (data: UpdateProfileInput) => {
+    await new Promise((r) => setTimeout(r, 400));
+    let updated: User | null = null;
+    setUser((current) => {
+      if (!current) throw new Error('Chưa đăng nhập');
+      updated = {
+        ...current,
+        displayName: data.displayName,
+        studentId: data.studentId ?? current.studentId,
+        university: data.university ?? current.university,
+        major: data.major ?? current.major,
+      };
+      saveJSON('session-user', updated);
+      return updated;
+    });
+    return updated!;
+  }, []);
+
+  const changePassword = useCallback(async (_currentPass: string, _newPass: string) => {
+    await new Promise((r) => setTimeout(r, 500));
+    return true;
+  }, []);
+
+  const forgotPassword = useCallback(async (_email: string) => {
+    await new Promise((r) => setTimeout(r, 500));
+    return true;
+  }, []);
+
+  const resetPassword = useCallback(async (_token: string, _newPass: string) => {
+    await new Promise((r) => setTimeout(r, 500));
+    return true;
+  }, []);
+
   const value = useMemo<AuthValue>(
-    () => ({ user, demoKey, getToken, login, register, logout, switchDemo, upgradeToPremium }),
-    [user, demoKey, getToken, login, register, logout, switchDemo, upgradeToPremium]
+    () => ({
+      user,
+      demoKey,
+      getToken,
+      login,
+      register,
+      logout,
+      switchDemo,
+      upgradeToPremium,
+      updateProfile,
+      changePassword,
+      forgotPassword,
+      resetPassword,
+    }),
+    [
+      user,
+      demoKey,
+      getToken,
+      login,
+      register,
+      logout,
+      switchDemo,
+      upgradeToPremium,
+      updateProfile,
+      changePassword,
+      forgotPassword,
+      resetPassword,
+    ]
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;

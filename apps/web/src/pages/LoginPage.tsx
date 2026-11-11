@@ -25,6 +25,11 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="mt-5 space-y-4">
           <Field label="Email sinh viên hoặc MSSV">{/* eslint-disable-next-line react/jsx-props-no-spreading */}<Input type="email" placeholder="ban@edu.vn" {...register('email')} />{errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}</Field>
           <Field label="Mật khẩu">{/* eslint-disable-next-line react/jsx-props-no-spreading */}<Input type="password" placeholder="••••••••" {...register('password')} />{errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}</Field>
+          <div className="flex justify-end">
+            <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+              Quên mật khẩu?
+            </Link>
+          </div>
           {serverError && <p className="text-sm text-red-600">{serverError}</p>}
           <Button type="submit" disabled={isSubmitting} className="w-full">{isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập vào hệ thống DevStudy Hub'}</Button>
         </form>

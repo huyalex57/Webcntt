@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { RESOURCE_TYPE_LABELS, TOPIC_LABELS } from '@devstudy/shared';
 import { useResource, useReportResource } from '../features/resources/api';
-import { ReportModal } from '../features/resources/components';
+import { ReportModal, ResourceCommentsSection } from '../features/resources/components';
 import { useAuth } from '../features/auth/AuthContext';
 import { useToast } from '../lib/toast';
 import { Badge, Button, Card, EmptyState, PageHeader } from '../components/ui';
@@ -116,6 +116,10 @@ export default function ResourceDetailPage() {
               Guest chỉ xem trước 30% tài liệu. Đăng nhập để tải toàn bộ file và lưu bộ sưu tập.
             </p>
           )}
+
+          <div className="mt-6 border-t border-border pt-6">
+            <ResourceCommentsSection resourceId={id} />
+          </div>
         </Card>
         <Card className="p-5">
           <h3 className="font-semibold">Thống kê</h3>

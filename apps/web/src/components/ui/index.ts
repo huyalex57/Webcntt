@@ -12,3 +12,5 @@ export * from './QuotaBar';
 export * from './Pagination';
 export * from './PageHeader';
 export * from './AuthGate';
+export * from './Skeleton';
+export * from './Tabs';

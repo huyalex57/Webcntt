@@ -25,6 +25,9 @@ const ExamDetailPage = lazy(() => import('../pages/ExamDetailPage'));
 const ExamCreatePage = lazy(() => import('../pages/ExamCreatePage'));
 const PricingPage = lazy(() => import('../pages/PricingPage'));
 const AdminPage = lazy(() => import('../pages/AdminPage'));
+const ForgotPasswordPage = lazy(() => import('../pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('../pages/ResetPasswordPage'));
+const ProfilePage = lazy(() => import('../pages/ProfilePage'));
 
 const routes: RouteObject[] = [
   {
@@ -62,6 +65,22 @@ const routes: RouteObject[] = [
           </Suspense>
         ),
       },
+      {
+        path: '/forgot-password',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ForgotPasswordPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/reset-password',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ResetPasswordPage />
+          </Suspense>
+        ),
+      },
     ],
   },
   {
@@ -73,6 +92,16 @@ const routes: RouteObject[] = [
           <RequireAuth>
             <Suspense fallback={<LoadingFallback />}>
               <DashboardPage />
+            </Suspense>
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/profile',
+        element: (
+          <RequireAuth>
+            <Suspense fallback={<LoadingFallback />}>
+              <ProfilePage />
             </Suspense>
           </RequireAuth>
         ),
