@@ -1,6 +1,15 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { PlanTier, Role, User, UpdateProfileInput } from '@devstudy/shared';
 import { loadJSON, saveJSON } from '../../lib/utils';
+import { apiClient, setAccessToken, getAccessToken } from '../../lib/api-client';
 
 export interface DemoIdentity {
   key: string;
@@ -39,12 +48,14 @@ export const DEMO_IDENTITIES: DemoIdentity[] = [
   { key: 'admin', label: 'ADMIN', user: mk('u-admin', 'admin@devstudy.edu.vn', 'Quản trị viên', 'ADMIN', 'FREE') },
 ];
 
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+
 interface AuthValue {
   user: User | null;
   demoKey: string;
   getToken: () => string | null;
   login: (email: string, password: string) => Promise<User>;
-  register: (name: string, email: string, studentId?: string, university?: string) => Promise<User>;
+  register: (name: string, email: string, studentId?: string, university?: string, password?: string) => Promise<User>;
   logout: () => void;
   switchDemo: (key: string) => void;
   upgradeToPremium: () => void;
@@ -65,49 +76,129 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return match ? match.key : 'student-free';
   });
 
-  // Access token CHỈ lưu in-memory (workflow §5.1) — không localStorage/cookie.
-  const tokenRef = useRef<string | null>(
-    loadJSON<User | null>('session-user', null)
-      ? 'mock-access-' + Math.random().toString(36).slice(2)
-      : null
-  );
-
   const persist = (u: User | null, key: string) => {
     setUser(u);
     setDemoKey(key);
     saveJSON('session-user', u);
   };
 
-  const getToken = useCallback(() => tokenRef.current, []);
+  const getToken = useCallback(() => getAccessToken(), []);
 
-  const login = useCallback(async (email: string, _password: string) => {
-    await new Promise((r) => setTimeout(r, 500));
-    const found = DEMO_IDENTITIES.find((d) => d.user?.email === email)?.user;
-    const u = found ?? mk('u-' + Date.now(), email, email.split('@')[0], 'STUDENT', 'FREE');
-    tokenRef.current = 'mock-access-' + Math.random().toString(36).slice(2);
-    const key = DEMO_IDENTITIES.find((d) => d.user?.email === email)?.key ?? 'student-free';
-    persist(u, key);
-    return u;
+  // Kiểm tra phiên đăng nhập từ Backend khi ứng dụng load (refresh cookie)
+  useEffect(() => {
+    if (USE_MOCK) return;
+
+    let mounted = true;
+    apiClient<{ accessToken: string; user: User }>('/auth/refresh', { method: 'POST' })
+      .then((res) => {
+        if (!mounted) return;
+        setAccessToken(res.accessToken);
+        persist(res.user, 'student-free');
+      })
+      .catch(() => {
+        if (!mounted) return;
+        // Nếu không có cookie hợp lệ thì chuyển về guest nếu đang không dùng mock
+        if (!loadJSON<User | null>('session-user', null)) {
+          persist(null, 'guest');
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const register = useCallback(async (name: string, email: string, studentId?: string, university?: string) => {
-    await new Promise((r) => setTimeout(r, 600));
-    const u = mk('u-' + Date.now(), email, name, 'STUDENT', 'FREE', studentId, university);
-    tokenRef.current = 'mock-access-' + Math.random().toString(36).slice(2);
-    persist(u, 'student-free');
-    return u;
+  const login = useCallback(async (email: string, password: string) => {
+    if (USE_MOCK) {
+      await new Promise((r) => setTimeout(r, 500));
+      const found = DEMO_IDENTITIES.find((d) => d.user?.email === email)?.user;
+      const u = found ?? mk('u-' + Date.now(), email, email.split('@')[0], 'STUDENT', 'FREE');
+      setAccessToken('mock-access-' + Math.random().toString(36).slice(2));
+      const key = DEMO_IDENTITIES.find((d) => d.user?.email === email)?.key ?? 'student-free';
+      persist(u, key);
+      return u;
+    }
+
+    const res = await apiClient<{ user: User; accessToken: string }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+
+    setAccessToken(res.accessToken);
+    const match = DEMO_IDENTITIES.find((d) => d.user?.email === res.user.email);
+    persist(res.user, match ? match.key : 'student-free');
+    return res.user;
   }, []);
 
-  const logout = useCallback(() => {
-    tokenRef.current = null;
+  const register = useCallback(
+    async (name: string, email: string, studentId?: string, university?: string, password = 'password123') => {
+      if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 600));
+        const u = mk('u-' + Date.now(), email, name, 'STUDENT', 'FREE', studentId, university);
+        setAccessToken('mock-access-' + Math.random().toString(36).slice(2));
+        persist(u, 'student-free');
+        return u;
+      }
+
+      const res = await apiClient<{ user: User; accessToken: string }>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          displayName: name,
+          email,
+          studentId: studentId || '20230001',
+          university: university || 'ĐH Bách Khoa',
+          password,
+          confirmPassword: password,
+          agree: true,
+        }),
+      });
+
+      setAccessToken(res.accessToken);
+      persist(res.user, 'student-free');
+      return res.user;
+    },
+    []
+  );
+
+  const logout = useCallback(async () => {
+    if (!USE_MOCK) {
+      try {
+        await apiClient('/auth/logout', { method: 'POST' });
+      } catch (err) {
+        // bỏ qua lỗi nếu có
+      }
+    }
+    setAccessToken(null);
     persist(null, 'guest');
   }, []);
 
-  const switchDemo = useCallback((key: string) => {
+  const switchDemo = useCallback(async (key: string) => {
     const d = DEMO_IDENTITIES.find((x) => x.key === key);
-    if (!d) return;
-    tokenRef.current = d.user ? 'mock-access-demo-' + key : null;
-    persist(d.user, key);
+    if (!d || !d.user) {
+      setAccessToken(null);
+      persist(null, 'guest');
+      return;
+    }
+
+    if (USE_MOCK) {
+      setAccessToken('mock-access-demo-' + key);
+      persist(d.user, key);
+      return;
+    }
+
+    // Với Backend thật: tự động login tài khoản demo tương ứng
+    try {
+      const res = await apiClient<{ user: User; accessToken: string }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: d.user.email, password: 'password123' }),
+      });
+      setAccessToken(res.accessToken);
+      persist(res.user, key);
+    } catch {
+      // Fallback nếu server chưa có user
+      setAccessToken('mock-access-demo-' + key);
+      persist(d.user, key);
+    }
   }, []);
 
   const upgradeToPremium = useCallback(() => {
@@ -120,35 +211,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateProfile = useCallback(async (data: UpdateProfileInput) => {
-    await new Promise((r) => setTimeout(r, 400));
-    let updated: User | null = null;
-    setUser((current) => {
-      if (!current) throw new Error('Chưa đăng nhập');
-      updated = {
-        ...current,
-        displayName: data.displayName,
-        studentId: data.studentId ?? current.studentId,
-        university: data.university ?? current.university,
-        major: data.major ?? current.major,
-      };
-      saveJSON('session-user', updated);
-      return updated;
+    if (USE_MOCK) {
+      await new Promise((r) => setTimeout(r, 400));
+      let updated: User | null = null;
+      setUser((current) => {
+        if (!current) throw new Error('Chưa đăng nhập');
+        updated = {
+          ...current,
+          displayName: data.displayName,
+          studentId: data.studentId ?? current.studentId,
+          university: data.university ?? current.university,
+          major: data.major ?? current.major,
+        };
+        saveJSON('session-user', updated);
+        return updated;
+      });
+      return updated!;
+    }
+
+    const updated = await apiClient<User>('/users/me', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     });
-    return updated!;
+
+    setUser(updated);
+    saveJSON('session-user', updated);
+    return updated;
   }, []);
 
-  const changePassword = useCallback(async (_currentPass: string, _newPass: string) => {
-    await new Promise((r) => setTimeout(r, 500));
+  const changePassword = useCallback(async (currentPass: string, newPass: string) => {
+    if (USE_MOCK) {
+      await new Promise((r) => setTimeout(r, 500));
+      return true;
+    }
+
+    await apiClient('/users/me/change-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        currentPassword: currentPass,
+        newPassword: newPass,
+        confirmNewPassword: newPass,
+      }),
+    });
     return true;
   }, []);
 
-  const forgotPassword = useCallback(async (_email: string) => {
-    await new Promise((r) => setTimeout(r, 500));
+  const forgotPassword = useCallback(async (email: string) => {
+    if (USE_MOCK) {
+      await new Promise((r) => setTimeout(r, 500));
+      return true;
+    }
+
+    await apiClient('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
     return true;
   }, []);
 
-  const resetPassword = useCallback(async (_token: string, _newPass: string) => {
-    await new Promise((r) => setTimeout(r, 500));
+  const resetPassword = useCallback(async (_token: string, newPass: string) => {
+    if (USE_MOCK) {
+      await new Promise((r) => setTimeout(r, 500));
+      return true;
+    }
+
+    await apiClient('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        password: newPass,
+        confirmPassword: newPass,
+      }),
+    });
     return true;
   }, []);
 

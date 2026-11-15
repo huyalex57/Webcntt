@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: devstudy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: itlearn
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d itlearn"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: devstudy-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  s3:
+    image: zenko/cloudserver:latest
+    container_name: devstudy-s3
+    restart: unless-stopped
+    environment:
+      ENDPOINT: s3
+      SCALITY_ACCESS_KEY_ID: minioadmin
+      SCALITY_SECRET_ACCESS_KEY: minioadmin
+    ports:
+      - "9000:8000"
+    volumes:
+      - s3data:/usr/src/app/localData
+      - s3metadata:/usr/src/app/localMetadata
+
+volumes:
+  pgdata:
+  redisdata:
+  s3data:
+  s3metadata:
