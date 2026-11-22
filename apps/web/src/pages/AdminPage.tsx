@@ -247,9 +247,12 @@ export default function AdminPage() {
               </thead>
               <tbody>
                 {[
-                  { n: 'Nguyễn Đức Huy', r: 'STUDENT', p: 'FREE' },
-                  { n: 'TS. Trần Minh Tuấn', r: 'LECTURER', p: 'FREE' },
-                  { n: 'Trần Thu Linh', r: 'STUDENT', p: 'PREMIUM' },
+                  { n: 'Nguyễn Đức Huy (huy.nd@edu.vn)', r: 'STUDENT', p: 'FREE' },
+                  { n: 'Trần Thị Linh (linh.tt@edu.vn)', r: 'STUDENT', p: 'PREMIUM' },
+                  { n: 'Lê Thuỳ Trang (trang.lt@edu.vn)', r: 'STUDENT', p: 'FREE (EXPIRED)' },
+                  { n: 'TS. Trần Minh Tuấn (tuan.tm@hust.edu.vn)', r: 'LECTURER', p: 'FREE' },
+                  { n: 'ThS. Tạ Quang Bảo (bao.tq@hust.edu.vn)', r: 'LECTURER', p: 'PREMIUM' },
+                  { n: 'Ban Kiểm Duyệt Nội Dung (mod@devstudy.edu.vn)', r: 'MODERATOR', p: 'FREE' },
                 ].map((u) => (
                   <tr key={u.n} className="border-b">
                     <td className="py-2 font-medium">{u.n}</td>

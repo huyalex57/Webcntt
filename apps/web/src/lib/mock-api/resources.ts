@@ -13,34 +13,66 @@ export interface ResourceFilter {
 
 // In-memory comments store
 const COMMENTS: Record<string, ResourceComment[]> = {
-  r1: [
+  'res-ctdl-120': [
     {
       id: 'c1',
-      resourceId: 'r1',
-      author: 'Nguyễn Văn An',
+      resourceId: 'res-ctdl-120',
+      author: 'Nguyễn Đức Huy',
       userRole: 'STUDENT',
-      content: 'Tài liệu giải thích thuật toán Dijkstra rất chi tiết, có code đối chứng C++ cực dễ hiểu!',
+      content: 'Tài liệu giải thích thuật toán Dijkstra và Quy hoạch động rất chi tiết, có code đối chứng C++ và Python cực dễ hiểu!',
       rating: 5,
-      createdAt: '2024-09-10 14:30',
+      createdAt: '2026-09-10 14:30',
       replies: [
         {
           id: 'c1-1',
-          resourceId: 'r1',
-          author: 'Khoa KHMT — ĐHQG',
+          resourceId: 'res-ctdl-120',
+          author: 'TS. Trần Minh Tuấn',
           userRole: 'LECTURER',
-          content: 'Cảm ơn em! Nếu có thắc mắc bài tập nào có thể hỏi thêm trên diễn đàn nhé.',
-          createdAt: '2024-09-11 09:15',
+          content: 'Cảm ơn em đã đánh giá! Thầy sẽ bổ sung thêm chuyên đề Segment Tree & Fenwick Tree trong bản cập nhật giữa học kỳ nhé.',
+          createdAt: '2026-09-11 09:15',
         },
       ],
     },
     {
       id: 'c2',
-      resourceId: 'r1',
-      author: 'Lê Thuỳ Trang',
+      resourceId: 'res-ctdl-120',
+      author: 'Trần Thị Linh',
       userRole: 'STUDENT',
-      content: 'Bộ test case cây nhị phân giúp mình debug bài giữa kỳ được 10 điểm, recommend cho mọi người.',
+      content: 'Bộ test case cây nhị phân cân bằng giúp mình debug bài lab trên Judge0 đạt 100/100 điểm, rất đáng lưu vào bộ sưu tập.',
       rating: 5,
-      createdAt: '2024-09-15 20:00',
+      createdAt: '2026-09-15 20:00',
+    },
+  ],
+  'res-sql-cheatsheet': [
+    {
+      id: 'c3',
+      resourceId: 'res-sql-cheatsheet',
+      author: 'Trần Thị Linh',
+      userRole: 'STUDENT',
+      content: 'Phần phân tích EXPLAIN ANALYZE và Covering Index áp dụng ngay được vào đồ án môn CSDL PostgreSQL.',
+      rating: 5,
+      createdAt: '2026-10-05 16:20',
+      replies: [
+        {
+          id: 'c3-1',
+          resourceId: 'res-sql-cheatsheet',
+          author: 'ThS. Tạ Quang Bảo',
+          userRole: 'LECTURER',
+          content: 'Các em chú ý thêm phần thứ tự cột trong Composite Index (Leftmost Prefix Rule) ở trang 3 nhé.',
+          createdAt: '2026-10-06 08:45',
+        },
+      ],
+    },
+  ],
+  'res-web-fullstack': [
+    {
+      id: 'c4',
+      resourceId: 'res-web-fullstack',
+      author: 'Nguyễn Đức Huy',
+      userRole: 'STUDENT',
+      content: 'Sơ đồ luồng JWT Access Token in-memory kết hợp Refresh Token Rotation httpOnly cookie giải thích rất rõ ràng.',
+      rating: 5,
+      createdAt: '2026-10-14 21:10',
     },
   ],
 };

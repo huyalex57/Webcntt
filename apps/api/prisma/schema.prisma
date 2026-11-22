@@ -109,6 +109,11 @@ model User {
   resourceReviews   ResourceReview[]
   codeSnippets      CodeSnippet[]
   runLogs           RunLog[]
+  enrollments       Enrollment[]
+  learningPaths     LearningPath[]
+  skillProfiles     SkillProfile[]
+  aiUsages          AiUsage[]
+  milestoneAttempts MilestoneAttempt[]
 
   @@map("users")
 }
@@ -355,4 +360,207 @@ model RunLog {
   @@index([userId, createdAt])
   @@index([createdAt])
   @@map("run_logs")
+}
+
+// ==========================================
+// Courses & AI Learning Path (Sprint Weekly)
+// ==========================================
+
+model Course {
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  title          String
+  description    String
+  instructor     String
+  instructorRole String    @default("Giảng viên")
+  category       String
+  price          Int       @default(0)
+  originalPrice  Int       @default(0)
+  rating         Float     @default(5.0)
+  ratingCount    Int       @default(0)
+  students       Int       @default(0)
+  hours          Int       @default(0)
+  lessonsCount   Int       @default(0)
+  labs           Int       @default(0)
+  level          String    @default("Cơ bản")
+  tags           String[]
+  certificate    Boolean   @default(true)
+  isPublished    Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  sections      Section[]
+  enrollments   Enrollment[]
+  learningPaths LearningPath[]
+
+  @@map("courses")
+}
+
+model Section {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@index([courseId, order])
+  @@map("sections")
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  sectionId   String
+  title       String
+  durationMin Int      @default(15)
+  free        Boolean  @default(false)
+  order       Int      @default(0)
+  content     String?
+  videoUrl    String?
+  createdAt   DateTime @default(now())
+
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId, order])
+  @@map("lessons")
+}
+
+model Enrollment {
+  id                String    @id @default(cuid())
+  userId            String
+  courseId          String
+  progress          Int       @default(0)
+  completedLessons  Int       @default(0)
+  totalLessons      Int       @default(0)
+  certificateIssued Boolean   @default(false)
+  enrolledAt        DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@map("enrollments")
+}
+
+model SkillProfile {
+  id        String   @id @default(cuid())
+  userId    String
+  topic     String
+  accuracy  Int      @default(0)
+  answered  Int      @default(0)
+  weak      Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topic])
+  @@index([userId])
+  @@map("skill_profiles")
+}
+
+enum MilestoneStatus {
+  LOCKED
+  IN_PROGRESS
+  NEEDS_REVIEW
+  COMPLETED
+}
+
+model LearningPath {
+  id              String   @id @default(cuid())
+  userId          String
+  courseId        String
+  targetGoal      String
+  currentLevel    String   @default("TRUNG_BINH")
+  hoursPerWeek    Int      @default(6)
+  aiSummary       String
+  modelName       String   @default("gemini-4-hydrogen-medium")
+  progressPercent Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course     Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  milestones Milestone[]
+
+  @@index([userId, courseId])
+  @@map("learning_paths")
+}
+
+model Milestone {
+  id             String          @id @default(cuid())
+  learningPathId String
+  orderIndex     Int
+  title          String
+  description    String
+  estimatedHours Int             @default(5)
+  passingScore   Int             @default(70)
+  status         MilestoneStatus @default(LOCKED)
+  lessonIds      String[]
+  quizJson       Json
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  learningPath LearningPath          @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  attempts     MilestoneAttempt[]
+  remediations MilestoneRemediation[]
+
+  @@index([learningPathId, orderIndex])
+  @@map("milestones")
+}
+
+model MilestoneAttempt {
+  id            String   @id @default(cuid())
+  milestoneId   String
+  userId        String
+  score         Int
+  passed        Boolean
+  answersJson   Json
+  wrongConcepts String[]
+  createdAt     DateTime @default(now())
+
+  milestone    Milestone              @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  remediations MilestoneRemediation[]
+
+  @@index([milestoneId, userId])
+  @@map("milestone_attempts")
+}
+
+model MilestoneRemediation {
+  id                     String   @id @default(cuid())
+  milestoneId            String
+  attemptId              String?
+  weaknessAnalysis       String
+  recommendedLessonsJson Json
+  remedialQuestionsJson  Json
+  resolved               Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  milestone Milestone         @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  attempt   MilestoneAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+
+  @@index([milestoneId, resolved])
+  @@map("milestone_remediations")
+}
+
+model AiUsage {
+  id               String   @id @default(cuid())
+  userId           String
+  feature          String
+  modelName        String   @default("gemini-4-hydrogen-medium")
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  latencyMs        Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, feature])
+  @@index([createdAt])
+  @@map("ai_usages")
 }

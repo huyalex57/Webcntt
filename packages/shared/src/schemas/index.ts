@@ -5,3 +5,4 @@ export * from './exams';
 export * from './playground';
 export * from './ai-practice';
 export * from './common';
+export * from './learning-path';

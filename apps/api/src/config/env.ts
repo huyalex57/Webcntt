@@ -21,6 +21,9 @@ const envSchema = z.object({
   JUDGE0_URL: z.string().default('http://localhost:2358'),
   JUDGE0_API_KEY: z.string().default(''),
   CODE_RUN_RATE_LIMIT_PER_MIN: z.string().default('60').transform((v) => parseInt(v, 10)),
+  GEMINI_API_KEY: z.string().default(''),
+  GEMINI_MODEL: z.string().default('gemini-4-hydrogen-medium'),
+  GEMINI_TIMEOUT_MS: z.string().default('25000').transform((v) => parseInt(v, 10)),
 });
 
 const parsed = envSchema.safeParse(process.env);

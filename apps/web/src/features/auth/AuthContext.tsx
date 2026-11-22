@@ -40,12 +40,12 @@ const mk = (
 
 export const DEMO_IDENTITIES: DemoIdentity[] = [
   { key: 'guest', label: 'Guest (chưa đăng nhập)', user: null },
-  { key: 'student-free', label: 'STUDENT · Free', user: mk('u-student-free', 'huy.nd@edu.vn', 'Nguyễn Đức Huy', 'STUDENT', 'FREE', '20220001', 'ĐH Bách Khoa Hà Nội', 'Kỹ thuật Phần mềm') },
-  { key: 'student-premium', label: 'STUDENT · Premium', user: mk('u-student-pro', 'linh.tt@edu.vn', 'Trần Thu Linh', 'STUDENT', 'PREMIUM', '20220042', 'ĐH Khoa học Tự nhiên', 'Khoa học Dữ liệu') },
-  { key: 'lecturer-free', label: 'LECTURER · Free', user: mk('u-lect-free', 'tuan.tm@hust.edu.vn', 'TS. Trần Minh Tuấn', 'LECTURER', 'FREE') },
-  { key: 'lecturer-premium', label: 'LECTURER · Premium', user: mk('u-lect-pro', 'bao.tq@hust.edu.vn', 'TS. Trịnh Quốc Bảo', 'LECTURER', 'PREMIUM') },
-  { key: 'moderator', label: 'MODERATOR', user: mk('u-mod', 'mod@devstudy.edu.vn', 'Kiểm duyệt viên', 'MODERATOR', 'FREE') },
-  { key: 'admin', label: 'ADMIN', user: mk('u-admin', 'admin@devstudy.edu.vn', 'Quản trị viên', 'ADMIN', 'FREE') },
+  { key: 'student-free', label: 'STUDENT · Free', user: mk('u-student-free', 'huy.nd@edu.vn', 'Nguyễn Đức Huy', 'STUDENT', 'FREE', '20210001', 'ĐH Bách Khoa Hà Nội', 'Khoa học Máy tính') },
+  { key: 'student-premium', label: 'STUDENT · Premium', user: mk('u-student-pro', 'linh.tt@edu.vn', 'Trần Thị Linh', 'STUDENT', 'PREMIUM', '20210002', 'ĐH Công nghệ — ĐHQGHN', 'Kỹ thuật Phần mềm') },
+  { key: 'lecturer-free', label: 'LECTURER · Free', user: mk('u-lect-free', 'tuan.tm@hust.edu.vn', 'TS. Trần Minh Tuấn', 'LECTURER', 'FREE', 'GV201501', 'ĐH Bách Khoa Hà Nội', 'Khoa học Máy tính') },
+  { key: 'lecturer-premium', label: 'LECTURER · Premium', user: mk('u-lect-pro', 'bao.tq@hust.edu.vn', 'ThS. Tạ Quang Bảo', 'LECTURER', 'PREMIUM', 'GV201802', 'ĐH Bách Khoa Hà Nội', 'Hệ thống Thông tin') },
+  { key: 'moderator', label: 'MODERATOR', user: mk('u-mod', 'mod@devstudy.edu.vn', 'Ban Kiểm Duyệt Nội Dung', 'MODERATOR', 'FREE', undefined, 'DevStudy Hub', 'Kiểm duyệt học liệu') },
+  { key: 'admin', label: 'ADMIN', user: mk('u-admin', 'admin@devstudy.edu.vn', 'Quản Trị Viên Hệ Thống', 'ADMIN', 'PREMIUM', undefined, 'DevStudy Hub', 'Vận hành hệ thống') },
 ];
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';

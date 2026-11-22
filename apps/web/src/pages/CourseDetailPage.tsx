@@ -6,6 +6,12 @@ import { useAuth } from '../features/auth/AuthContext';
 import { useToast } from '../lib/toast';
 import { Badge, Button, Card, EmptyState, PageHeader } from '../components/ui';
 import { formatVND } from '../lib/utils';
+import {
+  useCourseLearningPath,
+  useGenerateLearningPath,
+  GeneratePathFormModal,
+  LearningPathTimeline,
+} from '../features/learning-path';
 
 export default function CourseDetailPage() {
   const { id = '' } = useParams();
@@ -14,10 +20,15 @@ export default function CourseDetailPage() {
   const toast = useToast();
   const nav = useNavigate();
   const [paid, setPaid] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+
   const enrollments = useEnrollments();
   const buy = useBuyCourse();
   const markDone = useMarkLessonDone(id);
   const enrollment = enrollments.find((e) => e.courseId === id);
+
+  const { data: learningPath } = useCourseLearningPath(id);
+  const generatePathMutation = useGenerateLearningPath(id);
 
   if (isLoading) return <p className="text-sm text-slate-500">Đang tải…</p>;
   if (!c) {
@@ -46,6 +57,15 @@ export default function CourseDetailPage() {
     );
   };
 
+  const handleGeneratePath = async (formData: any) => {
+    try {
+      await generatePathMutation.mutateAsync(formData);
+      toast.push('AI Gemini 4 Hydrogen Medium đã tạo lộ trình thích ứng thành công!', 'success');
+    } catch (err: any) {
+      toast.push(err.message || 'Lỗi khi tạo lộ trình học tập', 'error');
+    }
+  };
+
   return (
     <div>
       <PageHeader
@@ -53,9 +73,48 @@ export default function CourseDetailPage() {
         subtitle={`${c.instructor} · ${c.instructorRole} · ★ ${c.rating} (${c.ratingCount.toLocaleString(
           'vi-VN'
         )} đánh giá) · ${c.students.toLocaleString('vi-VN')} học viên`}
+        actions={
+          (enrollment || paid) ? (
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={() => setIsGenerateModalOpen(true)}
+            >
+              ✨ {learningPath ? 'Tạo lại lộ trình AI' : 'Tạo lộ trình AI cá nhân hoá'}
+            </Button>
+          ) : undefined
+        }
       />
+
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
+          {/* AI Learning Path Banner / Timeline if exists */}
+          {learningPath ? (
+            <LearningPathTimeline path={learningPath} courseId={id} />
+          ) : (enrollment || paid) ? (
+            <Card className="p-5 border-dashed border-indigo-300 bg-indigo-50/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-700">
+                    Trợ lý Học tập Thông minh
+                  </span>
+                  <Badge color="navy">Gemini 4 Hydrogen Medium</Badge>
+                </div>
+                <h4 className="font-bold text-slate-900 text-sm mt-0.5">
+                  Bạn chưa tạo Lộ trình học tập thích ứng cho khoá học này
+                </h4>
+                <p className="text-xs text-slate-600 mt-1">
+                  AI sẽ phân tích đề cương khoá học và hồ sơ năng lực của bạn để tự động chia chặng và kiểm tra xét duyệt.
+                </p>
+              </div>
+              <Button
+                className="bg-indigo-600 hover:bg-indigo-700 shrink-0 px-3 py-1.5 text-xs"
+                onClick={() => setIsGenerateModalOpen(true)}
+              >
+                Tạo lộ trình ngay
+              </Button>
+            </Card>
+          ) : null}
+
           <Card className="p-5">
             <p className="text-sm leading-relaxed text-slate-700">{c.description}</p>
             <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600">
@@ -95,6 +154,7 @@ export default function CourseDetailPage() {
             </Card>
           )}
         </div>
+
         <Card className="h-fit p-5">
           <p>
             <span className="text-2xl font-bold text-primary">{formatVND(c.price)}</span>{' '}
@@ -102,13 +162,13 @@ export default function CourseDetailPage() {
           </p>
           <p className="mt-1 text-sm text-slate-500">Hỗ trợ SV 60% · Học thử 3 bài đầu miễn phí</p>
           {enrollment || paid ? (
-            <div className="mt-4">
+            <div className="mt-4 space-y-3">
               <Badge color="green">Đã đăng ký — Enrollment đang hoạt động</Badge>
-              <p className="mt-2 text-sm text-slate-600">
-                Bạn có quyền vào học toàn bộ bài giảng, lab và quiz của khoá này.
+              <p className="text-sm text-slate-600">
+                Bạn có quyền vào học toàn bộ bài giảng, lab và lộ trình học tập thích ứng của khoá này.
               </p>
               <Link to="/my-courses">
-                <Button className="mt-3 w-full">Vào học ngay</Button>
+                <Button className="w-full">Khoá học của tôi</Button>
               </Link>
             </div>
           ) : (
@@ -117,11 +177,18 @@ export default function CourseDetailPage() {
             </Button>
           )}
           <p className="mt-3 text-xs text-slate-500">
-            Luồng mua (workflow §5.3): tạo Order PENDING → cổng thanh toán → webhook xác nhận → Order PAID → tạo Enrollment.
-            Bản demo mô phỏng webhook thành công ngay.
+            Học viên gói Premium được mở khoá tính năng Lộ trình học tập thích ứng với Gemini 4 Hydrogen Medium.
           </p>
         </Card>
       </div>
+
+      <GeneratePathFormModal
+        open={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
+        onSubmit={handleGeneratePath}
+        isPending={generatePathMutation.isPending}
+        courseTitle={c.title}
+      />
     </div>
   );
 }

@@ -8,4 +8,5 @@ export * from './schemas/exams';
 export * from './schemas/playground';
 export * from './schemas/ai-practice';
 export * from './schemas/common';
+export * from './schemas/learning-path';
 export * from './constants';

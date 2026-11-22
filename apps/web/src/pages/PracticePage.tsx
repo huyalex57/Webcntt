@@ -10,16 +10,11 @@ import {
 import { useAuth } from '../features/auth/AuthContext';
 import { useToast } from '../lib/toast';
 import { aiQuotaLimit } from '../lib/gating';
+import { SEED_SKILL_PROFILES } from '../lib/seed';
 import { addDailyCount, getDailyCount, loadJSON, saveJSON } from '../lib/utils';
 import { Card, PageHeader } from '../components/ui';
 
-const DEFAULT_SKILLS: SkillProfile[] = [
-  { topic: 'CTDL', accuracy: 86, answered: 42, weak: false },
-  { topic: 'OOP', accuracy: 78, answered: 30, weak: false },
-  { topic: 'CSDL', accuracy: 64, answered: 25, weak: true },
-  { topic: 'MANG', accuracy: 71, answered: 18, weak: false },
-  { topic: 'HDH', accuracy: 58, answered: 20, weak: true },
-];
+const DEFAULT_SKILLS: SkillProfile[] = SEED_SKILL_PROFILES;
 
 export default function PracticePage() {
   const { user } = useAuth();

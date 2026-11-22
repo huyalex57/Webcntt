@@ -1,12 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createOrder, getCourse, listCourses } from '../../../lib/api';
+import { COURSES, SEED_ENROLLMENTS } from '../../../lib/seed';
 import { loadJSON, saveJSON } from '../../../lib/utils';
 import type { Enrollment } from '@devstudy/shared';
 
-const DEFAULT_ENROLLMENTS: Enrollment[] = [
-  { courseId: 'c1', progress: 65, completedLessons: 28, totalLessons: 43, certificateIssued: false },
-  { courseId: 'c7', progress: 100, completedLessons: 36, totalLessons: 36, certificateIssued: true },
-];
+const DEFAULT_ENROLLMENTS: Enrollment[] = SEED_ENROLLMENTS;
 
 export const useCourses = (q = '') =>
   useQuery({
@@ -41,9 +39,20 @@ export function useBuyCourse() {
     onSuccess: (_res, courseId) => {
       const list = loadJSON<Enrollment[]>('enrollments', DEFAULT_ENROLLMENTS);
       if (!list.some((e) => e.courseId === courseId)) {
+        const targetCourse = COURSES.find((c) => c.id === courseId);
+        const totalLessons =
+          targetCourse?.sections.reduce((acc, s) => acc + s.lessons.length, 0) ||
+          targetCourse?.lessonsCount ||
+          10;
         saveJSON('enrollments', [
           ...list,
-          { courseId, progress: 0, completedLessons: 0, totalLessons: 10, certificateIssued: false },
+          {
+            courseId,
+            progress: 0,
+            completedLessons: 0,
+            totalLessons,
+            certificateIssued: false,
+          },
         ]);
       }
       qc.invalidateQueries({ queryKey: ['enrollments'] });

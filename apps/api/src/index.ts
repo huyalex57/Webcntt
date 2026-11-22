@@ -13,6 +13,7 @@ import {
   resourcesRouter,
 } from './modules/resources/resources.routes.js';
 import { codeRouter } from './modules/code/code.routes.js';
+import { learningPathRouter } from './modules/learning-path/learning-path.routes.js';
 import { requireAuth } from './middlewares/requireAuth.js';
 import { requireRole } from './middlewares/requireRole.js';
 import { requirePlan } from './middlewares/requirePlan.js';
@@ -89,6 +90,7 @@ app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/resources', resourcesRouter);
 app.use('/api/v1/admin/resources', adminResourcesRouter);
 app.use('/api/v1/code', codeRouter);
+app.use('/api/v1', learningPathRouter);
 
 if (process.env.NODE_ENV !== 'test') {
   app.listen(env.PORT, () => {
