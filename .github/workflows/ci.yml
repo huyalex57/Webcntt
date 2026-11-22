@@ -62,7 +62,7 @@ jobs:
         run: |
           npx --workspace=@devstudy/api prisma generate
           npx --workspace=@devstudy/api prisma migrate deploy
-          npm run seed --workspace=@devstudy/api
+          npm run prisma:seed --workspace=@devstudy/api
 
       - name: Run Unit & Integration Tests
         env:
