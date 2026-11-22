@@ -18,6 +18,9 @@ const envSchema = z.object({
   S3_SECRET_KEY: z.string().default('minioadmin'),
   S3_BUCKET: z.string().default('devstudy-uploads'),
   S3_REGION: z.string().default('us-east-1'),
+  JUDGE0_URL: z.string().default('http://localhost:2358'),
+  JUDGE0_API_KEY: z.string().default(''),
+  CODE_RUN_RATE_LIMIT_PER_MIN: z.string().default('60').transform((v) => parseInt(v, 10)),
 });
 
 const parsed = envSchema.safeParse(process.env);

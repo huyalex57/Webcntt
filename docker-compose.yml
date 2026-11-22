@@ -1,3 +1,33 @@
+x-judge0-env: &judge0-env
+  REDIS_HOST: judge0-redis
+  REDIS_PORT: 6379
+  POSTGRES_HOST: judge0-db
+  POSTGRES_PORT: 5432
+  POSTGRES_DB: judge0
+  POSTGRES_USER: judge0
+  POSTGRES_PASSWORD: judge0password
+  # Sandbox security constraints (Issue #36 & Workflow §5.5)
+  ENABLE_WAIT_RESULT: "true"
+  ENABLE_BATCHED_SUBMISSIONS: "false"
+  ENABLE_NETWORK: "false"
+  ALLOW_ENABLE_NETWORK: "false"
+  ENABLE_COMPILER_OPTIONS: "false"
+  ENABLE_COMMAND_LINE_ARGUMENTS: "false"
+  ENABLE_SUBMISSION_DELETE: "false"
+  MAX_CPU_TIME_LIMIT: "5"
+  MAX_CPU_EXTRA_TIME: "1"
+  MAX_WALL_TIME_LIMIT: "10"
+  MAX_MEMORY_LIMIT: "524288"
+  MAX_STACK_LIMIT: "65536"
+  MAX_MAX_PROCESSES_AND_OR_THREADS: "60"
+  ENABLE_PER_PROCESS_AND_THREAD_TIME_LIMIT: "true"
+  ALLOW_ENABLE_PER_PROCESS_AND_THREAD_TIME_LIMIT: "false"
+  ENABLE_PER_PROCESS_AND_THREAD_MEMORY_LIMIT: "true"
+  ALLOW_ENABLE_PER_PROCESS_AND_THREAD_MEMORY_LIMIT: "false"
+  MAX_FILE_SIZE: "4096"
+  NUMBER_OF_RUNS: "1"
+  MAX_NUMBER_OF_RUNS: "1"
+
 services:
   postgres:
     image: postgres:16
@@ -45,8 +75,76 @@ services:
       - s3data:/usr/src/app/localData
       - s3metadata:/usr/src/app/localMetadata
 
+  # Judge0 Self-Hosted Sandbox Infrastructure (Issue #36)
+  judge0-db:
+    image: postgres:16.2
+    container_name: devstudy-judge0-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: judge0password
+      POSTGRES_DB: judge0
+    volumes:
+      - judge0_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U judge0 -d judge0"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  judge0-redis:
+    image: redis:7.2.4
+    container_name: devstudy-judge0-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  judge0-server:
+    image: judge0/judge0:1.13.1
+    container_name: devstudy-judge0-server
+    restart: unless-stopped
+    privileged: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,exec,nosuid,size=256m
+      - /box:rw,exec,nosuid,size=256m
+      - /api/tmp:rw,noexec,nosuid,size=64m
+    ports:
+      - "2358:2358"
+    environment:
+      <<: *judge0-env
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+
+  judge0-worker:
+    image: judge0/judge0:1.13.1
+    container_name: devstudy-judge0-worker
+    command: ["./scripts/workers"]
+    restart: unless-stopped
+    privileged: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,exec,nosuid,size=256m
+      - /box:rw,exec,nosuid,size=512m
+      - /api/tmp:rw,noexec,nosuid,size=64m
+    environment:
+      <<: *judge0-env
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+
 volumes:
   pgdata:
   redisdata:
   s3data:
   s3metadata:
+  judge0_pgdata:

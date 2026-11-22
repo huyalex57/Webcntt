@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import Editor, { type OnMount } from '@monaco-editor/react';
 import type { CodeLanguage } from '@devstudy/shared';
 
@@ -35,20 +35,20 @@ export function MonacoCodeEditor({
 }: MonacoCodeEditorProps) {
   const monacoLang = MONACO_LANG_MAP[language] || 'plaintext';
   const editorRef = useRef<unknown>(null);
+  const onRunRef = useRef(onRun);
 
-  const handleEditorMount: OnMount = useCallback(
-    (editor, monaco) => {
-      editorRef.current = editor;
+  useEffect(() => {
+    onRunRef.current = onRun;
+  }, [onRun]);
 
-      // Add Ctrl+Enter / Cmd+Enter shortcut to execute code
-      if (onRun) {
-        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
-          onRun();
-        });
-      }
-    },
-    [onRun]
-  );
+  const handleEditorMount: OnMount = useCallback((editor, monaco) => {
+    editorRef.current = editor;
+
+    // Add Ctrl+Enter / Cmd+Enter shortcut to execute latest code
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      onRunRef.current?.();
+    });
+  }, []);
 
   return (
     <div className="relative overflow-hidden rounded-md border border-border shadow-inner">

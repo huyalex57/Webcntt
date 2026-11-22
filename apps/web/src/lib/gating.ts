@@ -38,5 +38,5 @@ export const runQuotaLimit = (s: Session) => (s && s.plan === 'PREMIUM' ? PREMIU
 export const snippetLimit = (s: Session) => (s && s.plan === 'PREMIUM' ? PREMIUM_SNIPPET_LIMIT : FREE_SNIPPET_LIMIT);
 
 export const playgroundLimits = (s: Session) => (s && s.plan === 'PREMIUM'
-  ? { ramMb: 1024, timeoutS: 10, label: 'Premium: 1 GB RAM / 10s' }
-  : { ramMb: 256, timeoutS: 2, label: 'Free: 256 MB RAM / 2s' });
+  ? { ramMb: 512, timeoutS: 5, label: 'Premium: 512 MB RAM / 5s' }
+  : { ramMb: 128, timeoutS: 2, label: 'Free: 128 MB RAM / 2s' });

@@ -1,4 +1,4 @@
-import type { ApiResponse } from '@devstudy/shared';
+import type { ApiResponse, ApiResponseMeta } from '@devstudy/shared';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
 
@@ -29,14 +29,18 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-export async function apiClient<T>(
+async function executeRequest<T>(
   endpoint: string,
   options: RequestInit = {}
-): Promise<T> {
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+): Promise<{ data: T; meta?: ApiResponseMeta }> {
+  const url = endpoint.startsWith('http')
+    ? endpoint
+    : `${API_BASE}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 
   const headers = new Headers(options.headers || {});
-  headers.set('Content-Type', 'application/json');
+  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   if (inMemoryAccessToken) {
     headers.set('Authorization', `Bearer ${inMemoryAccessToken}`);
@@ -51,7 +55,7 @@ export async function apiClient<T>(
   let response: Response;
   try {
     response = await fetch(url, config);
-  } catch (err: any) {
+  } catch {
     throw {
       message: 'Không thể kết nối đến máy chủ API',
       status: 0,
@@ -60,18 +64,21 @@ export async function apiClient<T>(
   }
 
   // Xử lý 401: Thử refresh token
-  if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
+  if (
+    response.status === 401 &&
+    !endpoint.includes('/auth/refresh') &&
+    !endpoint.includes('/auth/login')
+  ) {
     if (isRefreshing) {
-      // Đang có request khác refresh -> chờ
-      return new Promise<T>((resolve, reject) => {
+      return new Promise<{ data: T; meta?: ApiResponseMeta }>((resolve, reject) => {
         failedQueue.push({
           resolve: async (newToken: string) => {
             headers.set('Authorization', `Bearer ${newToken}`);
             try {
               const retryRes = await fetch(url, { ...config, headers });
               const json = (await retryRes.json()) as ApiResponse<T>;
-              if (!retryRes.ok) throw json.error;
-              resolve(json.data);
+              if (!retryRes.ok) throw (json as any)?.error;
+              resolve({ data: json.data, meta: json.meta });
             } catch (retryErr) {
               reject(retryErr);
             }
@@ -100,16 +107,15 @@ export async function apiClient<T>(
       setAccessToken(newToken);
       processQueue(null, newToken);
 
-      // Thử lại request hiện tại
       headers.set('Authorization', `Bearer ${newToken}`);
       const retryResponse = await fetch(url, { ...config, headers });
-      const retryData = (await retryResponse.json()) as ApiResponse<T>;
+      const retryJson = (await retryResponse.json()) as ApiResponse<T>;
 
       if (!retryResponse.ok) {
-        throw retryData.error;
+        throw (retryJson as any)?.error;
       }
 
-      return retryData.data;
+      return { data: retryJson.data, meta: retryJson.meta };
     } catch (refreshErr) {
       processQueue(refreshErr, null);
       setAccessToken(null);
@@ -127,11 +133,28 @@ export async function apiClient<T>(
   }
 
   if (!response.ok) {
-    throw json?.error || {
-      message: `Yêu cầu thất bại với mã lỗi HTTP ${response.status}`,
-      status: response.status,
-    };
+    throw (
+      json?.error || {
+        message: `Yêu cầu thất bại với mã lỗi HTTP ${response.status}`,
+        status: response.status,
+      }
+    );
   }
 
-  return (json?.data !== undefined ? json.data : json) as T;
+  return {
+    data: (json?.data !== undefined ? json.data : json) as T,
+    meta: json?.meta,
+  };
+}
+
+export async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const result = await executeRequest<T>(endpoint, options);
+  return result.data;
+}
+
+export async function apiClientWithMeta<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<{ data: T; meta?: ApiResponseMeta }> {
+  return executeRequest<T>(endpoint, options);
 }
