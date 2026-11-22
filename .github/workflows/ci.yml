@@ -69,8 +69,8 @@ jobs:
           NODE_ENV: test
           DATABASE_URL: postgresql://devstudy:devstudy_secret@localhost:5432/devstudy_hub?schema=public
           REDIS_URL: redis://localhost:6379
-          JWT_ACCESS_SECRET: test-access-secret-32-chars-long-xxx
-          JWT_REFRESH_SECRET: test-refresh-secret-32-chars-long-xxx
+          JWT_SECRET: super_secret_jwt_access_key_change_in_production_12345
+          COOKIE_SECRET: super_secret_cookie_signing_key_12345
           S3_ENDPOINT: http://localhost:9000
           S3_BUCKET: devstudy-resources
           S3_ACCESS_KEY: minioadmin
