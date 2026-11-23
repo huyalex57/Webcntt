@@ -1,135 +1,201 @@
-# DevStudy Hub — Học · Luyện · Thi cho sinh viên CNTT
+# DevStudy Hub — Nền tảng Học · Luyện · Thi cho Sinh viên CNTT
 
-Nền tảng web hỗ trợ sinh viên CNTT: **học tài liệu – luyện AI – chạy code sandbox – thi lập trình**,
-hiện thực frontend theo tài liệu workflow (`workflow_web_ho_tro_sinh_vien_cntt_revised.md_3.md`),
-business flow theo role và DESIGN.md trong thư mục Stitch gốc.
+[![CI Pipeline](https://github.com/huyalex57/Webcntt/actions/workflows/ci.yml/badge.svg)](https://github.com/huyalex57/Webcntt/actions/workflows/ci.yml)
+[![Node Version](https://img.shields.io/badge/Node.js-22%20LTS-brightgreen.svg)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **Bản demo frontend + mock API.** Mọi dữ liệu, đăng nhập, thanh toán, chạy code, chấm thi
-> đều là mô phỏng phía client. Gating ở FE chỉ là UX — **backend thật phải kiểm tra lại**
-> role / plan / quota / Enrollment bằng middleware (`requireAuth → requireRole → requirePlan →
-> requireEnrollment → checkQuota`, workflow §4).
+**DevStudy Hub** là nền tảng trực tuyến toàn diện hỗ trợ sinh viên Công nghệ Thông tin theo chu trình khép kín: **Học tài liệu chuẩn hoá – Luyện tập AI cá nhân hoá – Thực thi Code Sandbox – Thi lập trình trực tuyến**. 
 
-## Stack
+Dự án được xây dựng theo kiến trúc **Monorepo hiện đại**, kết nối giữa ứng dụng Web React (Vite) và REST API Express 5, cơ sở dữ liệu PostgreSQL (Prisma ORM), bộ nhớ đệm Redis, lưu trữ S3, thực thi code an toàn với Judge0 và trí tuệ nhân tạo thích ứng với mô hình **Gemini 4 Hydrogen Medium**.
 
-| Hạng mục | Công nghệ |
-|---|---|
-| Monorepo | npm workspaces (`apps/*`, `packages/*`) |
-| Frontend | React 18 + Vite 5 + TypeScript (strict) |
-| Routing | React Router 6 |
-| CSS | Tailwind CSS v4 (`@tailwindcss/vite`, `@theme` theo DESIGN.md) |
-| Fetch/cache | TanStack Query 5 |
-| Form | React Hook Form 7 + Zod (`@hookform/resolvers`) |
-| Validation/types dùng chung | `packages/shared` (Zod schemas + types, workflow §5.1/§6) |
+---
 
-Design tokens (DESIGN.md): primary `#1E3A8A` (hover `#172554`), secondary `#0284C7`,
-tertiary `#0D9488`, nền `#F8FAFC`, chữ `#0F172A`, border `#E2E8F0`/`#CBD5E1`,
-card trắng radius 8px, nút radius 4px, font Inter, status AC `#059669` / WA `#DC2626` /
-TLE `#D97706` / CE `#6B7280`. Không dùng gradient trang trí.
+## 🏗️ Kiến trúc & Công nghệ (Tech Stack)
 
-## Cách chạy
+| Thành phần | Công nghệ chính | Chi tiết triển khai |
+|---|---|---|
+| **Monorepo** | npm workspaces | Quản lý đa gói: `apps/*`, `packages/*` |
+| **Backend API** | Express 5 + TypeScript | RESTful API, Controller-Service pattern, Argon2, Pino Logger, Helmet |
+| **Frontend Web** | React 18 + Vite 5 + TypeScript | Single Page App, Tailwind CSS v4, TanStack Query v5, React Hook Form |
+| **Code Editor** | Monaco Editor | Trình biên tập code chuẩn VS Code, phím tắt `Ctrl+Enter`, highlight syntax |
+| **Database & ORM** | PostgreSQL 16 + Prisma v6 | Quan hệ chuẩn hoá, PostgreSQL Full-Text Search (GIN index), Transaction |
+| **Cache & Quota** | Redis 7 (`ioredis`) | Cache tài liệu thịnh hành, phân tán rate-limiting, đếm quota chạy code & AI |
+| **Object Storage** | S3-compatible (MinIO / Zenko) | Upload 2 bước trực tiếp bằng AWS SDK Presigned URL, SHA-256 hash chống trùng |
+| **Code Sandbox** | Judge0 (Docker) | Môi trường sandbox cô lập không mạng (`no-net`), giới hạn CPU/RAM theo gói tài khoản |
+| **AI LLM** | Gemini 4 Hydrogen Medium | Sinh lộ trình thích ứng, phân tích điểm yếu sinh viên, bộ câu hỏi ôn tập tự động |
+| **Shared Package** | `@devstudy/shared` | Zod schemas, validation logic và TypeScript types dùng chung đồng bộ |
+| **CI / CD** | GitHub Actions | Kiểm thử tự động trên Node 22 với Docker containers PostgreSQL và Redis |
+
+---
+
+## 📁 Cấu trúc Monorepo
+
+```
+Webcntt/
+├── .github/
+│   └── workflows/ci.yml          # CI Pipeline (Build, Prisma Migrate, Seed, Test)
+├── apps/
+│   ├── api/                      # Backend RESTful API (Express 5 + Prisma)
+│   │   ├── prisma/
+│   │   │   ├── schema.prisma     # Lược đồ CSDL: User, Resource, Code, Course, AI...
+│   │   │   ├── migrations/       # Lịch sử Database Migrations
+│   │   │   └── seed.ts           # Dữ liệu mẫu chuẩn hoá cho toàn bộ hệ thống
+│   │   ├── src/
+│   │   │   ├── config/           # env (Zod), prisma, redis, logger, s3
+│   │   │   ├── middlewares/      # requireAuth, requireRole, requirePlan, checkQuota
+│   │   │   ├── modules/          # auth, resources, code, courses, learning-path (AI)
+│   │   │   ├── scripts/          # test-gemini.ts (Demo CLI cho dịch vụ AI)
+│   │   │   └── __tests__/        # 38 Integration & Unit test suites
+│   │   └── package.json
+│   └── web/                      # Frontend Application (React + Vite + Tailwind)
+│       ├── src/
+│       │   ├── app/              # Router, Provider, QueryClient
+│       │   ├── components/       # UI Primitives: Button, Card, Badge, Modal, Input...
+│       │   ├── features/         # auth, resources, playground, courses, learning-path
+│       │   ├── lib/              # apiClient (Axios/Ky wrapper), gating, utils
+│       │   └── pages/            # 14 trang ứng dụng theo chuẩn workflow
+│       └── package.json
+├── packages/
+│   └── shared/                   # Gói chia sẻ types & Zod schemas dùng chung
+│       └── src/
+│           ├── constants.ts      # Hạn mức Quota, giới hạn file, ngôn ngữ hỗ trợ
+│           └── schemas/          # auth, resource, code, learning-path, course
+├── docker-compose.yml            # Docker services: PostgreSQL, Redis, S3, Judge0
+└── package.json                  # Root npm workspace configuration
+```
+
+---
+
+## 🚀 Hướng dẫn Cài đặt & Khởi chạy
+
+### Yêu cầu tiên quyết
+- **Node.js**: Phiên bản 22.x LTS trở lên
+- **Docker & Docker Compose**: Để chạy CSDL PostgreSQL, Redis và S3 Storage
+
+### 1. Cài đặt Dependencies
+Tại thư mục gốc dự án:
+```bash
+npm install
+```
+
+### 2. Khởi động Infrastructure Containers
+Khởi chạy PostgreSQL (5432), Redis (6379) và S3 Server (9000):
+```bash
+docker compose up -d
+```
+
+### 3. Cấu hình Biến môi trường
+Tạo file `.env` cho Backend API từ mẫu:
+```bash
+cp apps/api/.env.example apps/api/.env
+```
+*(Các tham số mặc định trong `.env.example` đã được đồng bộ sẵn với `docker-compose.yml`)*.
+
+Nếu muốn gọi trực tiếp đến API Google Gemini Cloud thay vì dùng Fallback Engine nội bộ, hãy bổ sung:
+```env
+GEMINI_API_KEY=AIzaSy...
+```
+
+### 4. Triển khai CSDL & Seed Dữ liệu
+```bash
+# Đồng bộ Prisma Schema vào PostgreSQL
+npx --workspace=@devstudy/api prisma migrate deploy
+
+# Nạp dữ liệu seed chuẩn (Tài khoản mẫu, khoá học, đề cương, ngân hàng câu hỏi)
+npm run prisma:seed --workspace=@devstudy/api
+```
+
+### 5. Khởi chạy Ứng dụng ở môi trường Phát triển (Development)
+Chạy đồng thời Backend API và Frontend Web:
+```bash
+# Terminal 1: Chạy Backend API (Port 4000)
+npm run dev:api
+
+# Terminal 2: Chạy Frontend Web (Port 5173)
+npm run dev
+```
+- Frontend: [http://localhost:5173](http://localhost:5173)
+- Backend API: [http://localhost:4000/api/v1](http://localhost:4000/api/v1)
+- Health check: [http://localhost:4000/health](http://localhost:4000/health)
+
+---
+
+## 🎯 Các Phân hệ Tính năng đã Triển khai
+
+### 1. Phân hệ Xác thực & Phân quyền Độc lập (Phase 0)
+- **Chu kỳ JWT an toàn kép**: Access Token (15 phút) lưu in-memory phía client; Refresh Token (30 ngày) lưu trong cookie `httpOnly` bảo vệ khỏi XSS.
+- **Refresh Token Rotation**: Tự động xoay vòng Refresh Token sau mỗi lần cấp mới, phát hiện và thu hồi toàn bộ phiên đăng nhập nếu token cũ bị sử dụng lại (Token Reuse Detection).
+- **Chuỗi Middleware phân quyền chuẩn**:
+  $$\text{Client Request} \longrightarrow \text{requireAuth} \longrightarrow \text{requireRole} \longrightarrow \text{requirePlan} \longrightarrow \text{checkQuota}$$
+- Đảm bảo Backend là chốt chặn bảo mật duy nhất; giao diện người dùng chỉ phản ánh UX.
+
+### 2. Kho Tài liệu Học tập & Kiểm duyệt S3 (Phase 1 - Closes #34, #35)
+- **Tài liệu chuẩn hoá**: Tìm kiếm toàn văn (PostgreSQL Full-Text Search GIN index), bộ lọc đa tiêu chí (môn học, chủ đề, định dạng, độ khó) và phân trang con trỏ (Cursor Pagination).
+- **Upload 2 bước với Presigned URL**: Trình duyệt upload trực tiếp file (PDF, DOCX, ZIP $\le$ 50MB) lên S3, không làm nghẽn server API.
+- **Chống trùng lặp**: Tự động tính mã băm SHA-256 client/server để từ chối file trùng lặp (HTTP 409 `DUPLICATE_RESOURCE`).
+- **Quy trình Kiểm duyệt Moderator**: Hàng đợi tài liệu `PENDING`, hỗ trợ phê duyệt hoặc từ chối kèm lý do và ghi nhận `AuditLog`.
+
+### 3. Code Playground & Thực thi An toàn với Judge0 (Phase 1 - Closes #36, #37)
+- **Trình soạn thảo Monaco Editor**: Tích hợp phím tắt chạy nhanh `Ctrl+Enter`, đổi chủ đề, highlight cú pháp 5 ngôn ngữ: **C, C++, Python, Java, Go**.
+- **Sandbox cô lập Judge0**: Chạy code cách ly không truy cập mạng (`ENABLE_NETWORK=false`), giới hạn thời gian CPU và bộ nhớ RAM.
+- **Hạn mức tài nguyên phân cấp theo Gói (Rate Limit & Quota)**:
+  - Tài khoản **FREE**: 30 lượt chạy/ngày, tối đa 2s CPU, 128MB RAM, lưu tối đa 3 snippets.
+  - Tài khoản **PREMIUM**: 200 lượt chạy/ngày, tối đa 5s CPU, 512MB RAM, lưu tối đa 50 snippets.
+- **Chia sẻ mã nguồn**: Lưu trữ và tạo liên kết công khai cho đoạn mã (`?snippet=<id>`).
+
+### 4. Lộ trình Học tập Thích ứng với AI Gemini 4 Hydrogen Medium (Phase 2 - Closes #40, #41, #42, #43)
+- **Sinh lộ trình thích ứng (`POST /api/v1/courses/:id/generate-path`)**:
+  - Dựa trên đề cương bài học, mục tiêu sinh viên và hồ sơ năng lực (`SkillProfile`), mô hình **Gemini 4 Hydrogen Medium** phân chia khoá học thành 2–4 Cột mốc (`Milestones`) tuần tự.
+  - Mỗi cột mốc đi kèm bộ 3 câu hỏi trắc nghiệm kiểm định chuẩn đầu ra (gồm mã code, 4 phương án, đáp án đúng và lời giải chi tiết).
+- **Đánh giá năng lực chặng & Khắc phục điểm yếu thích ứng (`POST /api/v1/milestones/:id/evaluate`)**:
+  - Điểm kiểm tra $\ge 70\%$: Chặng chuyển thành `COMPLETED`, mở khoá chặng kế tiếp (`IN_PROGRESS`).
+  - Điểm kiểm tra $< 70\%$: Chặng chuyển thành `NEEDS_REVIEW`. Gemini AI tự động phân tích câu hỏi làm sai, đưa ra nhận xét điểm yếu (`weaknessAnalysis`), chỉ định bài học cần xem lại (`recommendedLessons`) và sinh thêm 2 câu hỏi ôn tập phát sinh (`remedialQuestions`).
+- **Dynamic Fallback Engine**: Tự động chuyển đổi mượt mà giữa gọi Gemini Cloud API và bộ sinh cục bộ dự phòng (Deterministic Builder), giúp hệ thống không bao giờ bị dừng hoạt động khi offline hoặc mất kết nối API key.
+- **Giám sát lượng tiêu thụ Token**: Bảng `AiUsage` ghi nhận thời gian phản hồi (`latencyMs`), `promptTokens` và `completionTokens` của từng yêu cầu.
+
+---
+
+## 👥 Danh sách Tài khoản Kiểm thử (Demo Accounts)
+
+Hệ thống đã được nạp sẵn dữ liệu seed với các tài khoản tương ứng từng vai trò:
+
+| Vai trò | Gói dịch vụ | Email đăng nhập | Mật khẩu mẫu | Quyền hạn nổi bật |
+|---|:---:|---|:---:|---|
+| **STUDENT** | Free | `huy.nd@edu.vn` | `password123` | Xem tài liệu, chạy code 30 lần/ngày; **không** tạo được lộ trình AI (yêu cầu Premium) |
+| **STUDENT** | Premium | `linh.tt@edu.vn` | `password123` | Toàn quyền tạo lộ trình AI Gemini, làm trắc nghiệm chặng, chạy code 200 lần/ngày |
+| **LECTURER** | Free | `tuan.tm@hust.edu.vn` | `password123` | Quản lý khoá học, xem tài liệu; bị giới hạn tạo kỳ thi lập trình |
+| **LECTURER** | Premium | `bao.tq@hust.edu.vn` | `password123` | Tạo bài thi lập trình trực tuyến, quản lý bài test và chấm điểm |
+| **MODERATOR** | Staff | `mod@devstudy.edu.vn` | `password123` | Hàng đợi duyệt tài liệu cộng đồng (`PENDING`), từ chối kèm lý do, xử lý báo cáo |
+| **ADMIN** | System | `admin@devstudy.edu.vn` | `password123` | Quản trị người dùng, phân quyền Role/Plan, xem nhật ký kiểm toán `AuditLog` |
+
+---
+
+## 🧪 Kiểm thử Tự động & Chất lượng Mã nguồn
+
+Dự án duy trì tỷ lệ kiểm thử tích hợp và tự động hoá 100% trên toàn bộ monorepo:
 
 ```bash
-cd devstudy-hub
-npm install            # cài workspaces (root + apps/web + packages/shared)
-npm run dev            # chạy Vite dev server tại http://localhost:5173
-npm run build          # build production (tsc + vite build) trong apps/web
+# 1. Chạy toàn bộ 54 bài kiểm thử Monorepo (Web + API)
+npm run test
+
+# 2. Chạy riêng bộ kiểm thử tích hợp Backend (38 bài test)
+npm run test --workspace=@devstudy/api
+
+# 3. Chạy kiểm thử dịch vụ AI Gemini (10 bài test)
+npx --workspace=@devstudy/api vitest run src/__tests__/gemini-service.test.ts
+
+# 4. Chạy script mô phỏng trực quan dòng dữ liệu AI Gemini CLI
+npm run test:gemini --workspace=@devstudy/api
+
+# 5. Type-check và Build toàn bộ mã nguồn
+npm run build
 ```
 
-## Mapping màn hình Stitch → route
+---
 
-| Màn hình Stitch | Route |
-|---|---|
-| Guest portal / trang chủ (1) & (9) | `/` |
-| Modal đăng nhập / đăng ký (2) | `/login`, `/register` |
-| Kho tài liệu (3) | `/resources`, `/resources/:id` |
-| Dashboard tổng quan (4) | `/dashboard` (cần đăng nhập) |
-| Danh sách khoá học (5) | `/courses`, `/courses/:id` |
-| Khóa học của tôi (6) | `/my-courses` (cần đăng nhập) |
-| Luyện tập AI theo plan (7) | `/practice` (cần đăng nhập) |
-| Code playground Judge0 (8) | `/playground` (cần đăng nhập) |
-| Thi lập trình | `/exams`, `/exams/:id`, `/exams/new` (LECTURER + Premium) |
-| Nâng cấp Premium | `/pricing` |
-| Quản trị / kiểm duyệt | `/admin` (MODERATOR / ADMIN) |
-
-Route cần đăng nhập chuyển về `/login` và ghi chú `redirect` trong `location.state`
-để quay lại đúng trang sau khi đăng nhập.
-
-## Tài khoản demo
-
-Không cần mật khẩu thật — bấm nút đăng nhập nhanh trên trang `/login`, hoặc dùng
-dropdown **“Demo: đổi vai trò”** ở header để chuyển tức thì giữa:
-
-| Demo | Email | Quyền |
-|---|---|---|
-| Guest | — | Chỉ xem nội dung công khai |
-| STUDENT · Free | `huy.nd@edu.vn` | Học, tải tài liệu, AI 10 câu/ngày, playground Free |
-| STUDENT · Premium | `linh.tt@edu.vn` | AI không giới hạn, playground cao hơn; **không** tạo được khoá học/bài thi |
-| LECTURER · Free | `tuan.tm@hust.edu.vn` | Tạo tài liệu/khoá học; **không** tạo được bài thi |
-| LECTURER · Premium | `bao.tq@hust.edu.vn` | Tạo được bài thi lập trình |
-| MODERATOR | `mod@devstudy.edu.vn` | Duyệt tài liệu, xử lý báo cáo |
-| ADMIN | `admin@devstudy.edu.vn` | Quản trị role/gói/thanh toán (UI mock) |
-
-Mật khẩu demo bất kỳ (≥ 6 ký tự). Access token **chỉ lưu in-memory** (workflow §5.1),
-không lưu localStorage; phiên đăng nhập (user demo) được lưu localStorage để tiện demo lại.
-
-## Tính năng đã làm
-
-- **Auth**: AuthContext, login/register (React Hook Form + Zod), logout, refresh mô phỏng,
-  demo role switcher, seed user từng vai trò.
-- **Gating** (`src/lib/gating.ts` + `RequireAuth`): đúng ma trận workflow §4 và business
-  flow §2 — Guest chỉ xem public; tải/luyện/chạy/thi yêu cầu đăng nhập; STUDENT Premium
-  không tạo được khoá học/bài thi; LECTURER Free bị chặn tạo bài thi (hiện upsell Premium).
-- **Tài liệu**: tìm kiếm + lọc (môn/chủ đề/loại/nguồn), chi tiết, tải (guest → `/login`),
-  lưu bộ sưu tập (localStorage), báo cáo vi phạm (form + toast), trạng thái
-  PENDING/PUBLISHED/REJECTED. Seed: 14 tài liệu.
-- **Khoá học**: danh sách + lọc/sắp xếp, chi tiết (đề cương, học thử 3 bài đầu),
-  mua (Order PENDING → mô phỏng thanh toán → Enrollment), “Khoá học của tôi” với
-  tiến độ + chứng nhận khi 100%. Seed: 9 khoá học.
-- **AI Practice**: form (chủ đề, trình độ, số câu, dạng câu hỏi) → sinh bộ câu hỏi từ
-  ngân hàng mẫu → làm bài → chấm điểm + giải thích → cập nhật SkillProfile (thanh điểm
-  yếu theo chủ đề). Quota Free 10 câu/ngày đếm bằng localStorage, hết quota → chặn +
-  upsell (mô phỏng 429). Seed: 24 câu hỏi (CTDL/OOP/CSDL/Mạng/HĐH/AI/Web).
-- **Playground**: editor textarea có hỗ trợ Tab (Ctrl+Enter để chạy) + line numbers,
-  chọn ngôn ngữ C/C++/Python/Java/Go, stdin, Run → mock Judge0 trả stdout/stderr/
-  exit code/time/memory + status chip AC/WA/TLE/CE, lưu snippet (giới hạn theo plan:
-  Free 3, Premium 50; chạy/ngày Free 30, Premium 200).
-- **Thi**: danh sách kỳ thi, trang làm bài (đồng hồ đếm ngược, autosave mô phỏng 15s,
-  nộp bài → kết quả từng test), trang tạo kỳ thi cho LECTURER Premium (form + thêm
-  problem). Seed: 3 kỳ thi.
-- **Admin/Mod**: hàng đợi duyệt PENDING (duyệt/từ chối), xử lý báo cáo vi phạm, bảng
-  quản trị user (ADMIN) — UI mock với dữ liệu seed.
-- **UI dùng chung**: Button, Card, Badge, Modal, Input/Select/Textarea, Header + Sidebar,
-  Pagination, EmptyState, QuotaBar, Toast. Responsive mobile → desktop, tiếng Việt toàn bộ.
-
-## Những gì là mock / placeholder
-
-| Mục | Trạng thái hiện tại | Bước tiếp theo (backend thật) |
-|---|---|---|
-| API | `src/lib/api.ts` mô phỏng REST `/api/v1` (delay 300–600ms, seed trong `src/lib/seed.ts`) | Express 5 + Prisma/PostgreSQL theo workflow §7; thay body các hàm `api.ts` bằng `fetch()` |
-| Auth | Mock login, token in-memory, không có refresh-token rotation thật | JWT access (15 phút) + refresh httpOnly cookie + rotation (workflow §5.1) |
-| AI Practice | Sinh câu hỏi từ ngân hàng 24 câu mẫu, không gọi LLM | AI service (Claude/OpenAI) trả JSON theo schema → validate Zod, cache, quota Redis (workflow §5.4) |
-| Playground | **Textarea + line numbers là placeholder cho Monaco Editor**; `runCode` là mock Judge0 bằng heuristic | Tích hợp Monaco Editor + gọi Judge0 self-host qua BullMQ worker, sandbox cô lập (workflow §5.5) |
-| Thanh toán | Mock checkout kích hoạt Premium/Enrollment ngay | VNPay/MoMo/Stripe; **chỉ webhook hợp lệ mới cấp quyền** (workflow §5.3, business flow §8) |
-| Thi | Chấm mock đồng bộ, đồng hồ đếm ngược phía client | Server là nguồn thời gian chuẩn; chấm qua queue, autosave thật, chống gian lận (workflow §5.6) |
-| Upload/video | Chưa có | S3-compatible + presigned URL (workflow §2.2) |
-| Email | Chưa có | Nodemailer/Resend: xác thực email, quên mật khẩu |
-
-## Cấu trúc thư mục
-
-```
-devstudy-hub/
-├─ package.json                 # npm workspaces: apps/*, packages/*
-├─ README.md
-├─ packages/shared/src/index.ts # types + Zod schemas (User, Role, PlanTier, Resource, Course, Question, Exam…)
-└─ apps/web/
-   ├─ package.json  vite.config.ts  tsconfig.json  index.html
-   └─ src/
-      ├─ main.tsx  index.css       # Tailwind v4 + @theme (DESIGN.md)
-      ├─ app/                     # router.tsx, providers.tsx (QueryClient, Auth)
-      ├─ features/                # auth, resources, courses, ai-practice, playground, exams, subscription
-      ├─ components/              # ui.tsx (Button/Card/Badge/Modal/Input…), Layout.tsx (Header/Sidebar)
-      ├─ lib/                     # api.ts (mock REST), seed.ts, gating.ts, utils.ts, toast.tsx
-      └─ pages/                   # Home, Login, Register, Dashboard, Resources(+Detail),
-                                  # Courses(+Detail), MyCourses, Practice, Playground,
-                                  # Exams(+Detail, +Create), Pricing, Admin
-```
+## 🗺️ Lộ trình Phát triển Tiếp theo (Roadmap)
+- [x] **Phase 0**: Khởi tạo Core Backend API, Database Prisma, JWT Token Rotation, Middleware RBAC.
+- [x] **Phase 1**: Kho tài liệu S3 presigned upload, Code Playground Monaco Editor & Judge0 Sandbox.
+- [x] **Phase 2 (Sprint AI)**: Tích hợp mô hình Gemini 4 Hydrogen Medium sinh lộ trình học tập thích ứng & bài học bổ trợ điểm yếu.
+- [ ] **Phase 3 (Kỳ thi lập trình & Giảng viên)**: Mở rộng phân hệ Giảng viên, tạo đề thi tự động, phòng thi lập trình trực tuyến với chấm bài tự động theo thời gian thực (Server-authoritative timer).
+- [ ] **Phase 4 (Thanh toán & Cổng MoMo)**: Tích hợp Webhook cổng thanh toán MoMo nâng cấp tài khoản Premium tự động và mua khoá học chuyên sâu.
