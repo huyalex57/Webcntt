@@ -36,6 +36,17 @@ export interface RemediationResult {
   latencyMs: number;
 }
 
+export function cleanJson(text: string): string {
+  if (!text) return '{}';
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```json')) {
+    cleaned = cleaned.replace(/^```json\s*/i, '').replace(/\s*```$/, '');
+  } else if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```\s*/, '').replace(/\s*```$/, '');
+  }
+  return cleaned.trim();
+}
+
 export class GeminiPathService {
   /**
    * Gọi mô hình Gemini 4 Hydrogen Medium sinh lộ trình học tập cá nhân hoá
@@ -140,7 +151,7 @@ Yêu cầu phân bổ:
 
       const resJson: any = await response.json();
       const rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
-      const parsed = JSON.parse(rawText);
+      const parsed = JSON.parse(cleanJson(rawText));
 
       return {
         aiSummary: parsed.aiSummary || 'Lộ trình cá nhân hoá được tối ưu bởi Gemini 4 Hydrogen Medium.',
@@ -284,7 +295,7 @@ Yêu cầu phân tích:
 
       const resJson: any = await response.json();
       const rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
-      const parsed = JSON.parse(rawText);
+      const parsed = JSON.parse(cleanJson(rawText));
 
       return {
         weaknessAnalysis: parsed.weaknessAnalysis,
