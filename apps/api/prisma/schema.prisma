@@ -31,6 +31,62 @@ enum ResourceStatus {
   REJECTED
 }
 
+enum ResourceType {
+  SLIDE
+  TEXTBOOK
+  EXAM
+  EXERCISE
+  CHEATSHEET
+  VIDEO
+  SOURCE
+}
+
+enum ResourceTopic {
+  CTDL
+  OOP
+  CSDL
+  MANG
+  HDH
+  AI_DS
+  WEB_CLOUD
+}
+
+enum ResourceLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum ResourceSource {
+  OFFICIAL
+  COMMUNITY
+  LECTURER
+}
+
+enum ReportReason {
+  BAN_QUYEN
+  SAI_LECH
+  DOC_HAI
+  KHONG_PHU_HOP
+  SPAM
+  KHAC
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum RunStatus {
+  AC
+  WA
+  TLE
+  MLE
+  RE
+  CE
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -41,10 +97,18 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  profile       Profile?
-  subscription  Subscription?
-  refreshTokens RefreshToken[]
-  auditLogs     AuditLog[]      @relation("UserAuditLogs")
+  profile           Profile?
+  subscription      Subscription?
+  refreshTokens     RefreshToken[]
+  auditLogs         AuditLog[]       @relation("UserAuditLogs")
+  authoredResources Resource[]       @relation("ResourceAuthor")
+  reviewedResources Resource[]       @relation("ResourceReviewer")
+  collections       Collection[]
+  reports           Report[]         @relation("ReportReporter")
+  resolvedReports   Report[]         @relation("ReportResolver")
+  resourceReviews   ResourceReview[]
+  codeSnippets      CodeSnippet[]
+  runLogs           RunLog[]
 
   @@map("users")
 }
@@ -110,4 +174,185 @@ model AuditLog {
   @@index([userId])
   @@index([action])
   @@map("audit_logs")
+}
+
+// ==========================================
+// Phase 1 - Module Resources (Issue #34)
+// ==========================================
+
+model Resource {
+  id              String         @id @default(cuid())
+  title           String
+  description     String
+  topic           ResourceTopic
+  level           ResourceLevel  @default(INTERMEDIATE)
+  format          String         @default("PDF")
+  type            ResourceType
+  language        String         @default("Tiếng Việt")
+  sourceType      ResourceSource @default(COMMUNITY)
+  url             String?
+  fileKey         String?
+  fileSize        Int            @default(0)
+  fileSizeLabel   String?
+  fileHash        String?        @unique
+  status          ResourceStatus @default(PENDING)
+  rejectionReason String?
+  downloads       Int            @default(0)
+  rating          Float          @default(0)
+  ratingCount     Int            @default(0)
+  authorName      String?
+  authorId        String
+  reviewedById    String?
+  reviewedAt      DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  author      User             @relation("ResourceAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  reviewedBy  User?            @relation("ResourceReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  tags        ResourceTag[]
+  collections Collection[]
+  reports     Report[]
+  reviews     ResourceReview[]
+
+  @@index([status, createdAt])
+  @@index([topic])
+  @@index([type])
+  @@index([sourceType])
+  @@index([url])
+  @@index([authorId])
+  @@map("resources")
+}
+
+model Tag {
+  id        String        @id @default(cuid())
+  name      String        @unique
+  slug      String        @unique
+  createdAt DateTime      @default(now())
+
+  resources ResourceTag[]
+
+  @@map("tags")
+}
+
+model ResourceTag {
+  resourceId String
+  tagId      String
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([resourceId, tagId])
+  @@index([tagId])
+  @@map("resource_tags")
+}
+
+model Collection {
+  id         String   @id @default(cuid())
+  userId     String
+  resourceId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resourceId])
+  @@index([userId])
+  @@map("collections")
+}
+
+model Report {
+  id           String       @id @default(cuid())
+  resourceId   String
+  reporterId   String
+  reason       ReportReason
+  detail       String
+  status       ReportStatus @default(OPEN)
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime     @default(now())
+
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  reporter   User     @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy User?    @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([resourceId])
+  @@map("reports")
+}
+
+model ResourceReview {
+  id         String   @id @default(cuid())
+  resourceId String
+  userId     String
+  rating     Int?
+  content    String
+  parentId   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  resource Resource         @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   ResourceReview?  @relation("ReviewReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  ResourceReview[] @relation("ReviewReplies")
+
+  @@index([resourceId, createdAt])
+  @@index([parentId])
+  @@map("resource_reviews")
+}
+
+// ==========================================
+// Phase 1 - Module Code Playground (Issue #36)
+// ==========================================
+
+model Language {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  judge0Id       Int      @unique
+  monacoLanguage String
+  extension      String
+  starterCode    String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  snippets CodeSnippet[]
+  runLogs  RunLog[]
+
+  @@map("languages")
+}
+
+model CodeSnippet {
+  id            String     @id @default(cuid())
+  title         String
+  languageId    String
+  code          String
+  userId        String
+  isPublic      Boolean    @default(false)
+  lastRunStatus RunStatus?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  language Language @relation(fields: [languageId], references: [id], onDelete: Restrict)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+  @@map("code_snippets")
+}
+
+model RunLog {
+  id         String    @id @default(cuid())
+  userId     String
+  languageId String
+  status     RunStatus
+  timeMs     Int
+  memoryKb   Int
+  exitCode   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  language Language @relation(fields: [languageId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("run_logs")
 }

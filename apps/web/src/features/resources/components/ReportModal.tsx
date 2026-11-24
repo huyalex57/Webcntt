@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { REPORT_REASON_LABELS, type ReportReason } from '@devstudy/shared';
 import { Button } from '../../../components/ui/Button';
 import { Field } from '../../../components/ui/Field';
 import { Modal } from '../../../components/ui/Modal';
@@ -8,11 +9,11 @@ import { Textarea } from '../../../components/ui/Textarea';
 export interface ReportModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (reason: string, detail: string) => Promise<void>;
+  onSubmit: (reason: ReportReason, detail: string) => Promise<void>;
 }
 
 export function ReportModal({ open, onClose, onSubmit }: ReportModalProps) {
-  const [reason, setReason] = useState('BAN_QUYEN');
+  const [reason, setReason] = useState<ReportReason>('BAN_QUYEN');
   const [detail, setDetail] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -31,11 +32,12 @@ export function ReportModal({ open, onClose, onSubmit }: ReportModalProps) {
     <Modal open={open} onClose={onClose} title="Báo cáo vi phạm nội dung">
       <div className="space-y-4">
         <Field label="Lý do báo cáo">
-          <Select value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option value="BAN_QUYEN">Vi phạm bản quyền học liệu</option>
-            <option value="SAI_LECH">Nội dung học vụ sai lệch / lỗi thời</option>
-            <option value="SPAM">Spam / tài liệu rác</option>
-            <option value="KHAC">Lý do khác</option>
+          <Select value={reason} onChange={(e) => setReason(e.target.value as ReportReason)}>
+            {(Object.keys(REPORT_REASON_LABELS) as ReportReason[]).map((key) => (
+              <option key={key} value={key}>
+                {REPORT_REASON_LABELS[key]}
+              </option>
+            ))}
           </Select>
         </Field>
         <Field label="Mô tả chi tiết vi phạm *">
@@ -47,7 +49,7 @@ export function ReportModal({ open, onClose, onSubmit }: ReportModalProps) {
           />
         </Field>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={submitting}>
             Huỷ
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>

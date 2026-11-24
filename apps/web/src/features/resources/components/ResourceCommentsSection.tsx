@@ -32,14 +32,18 @@ export function ResourceCommentsSection({ resourceId }: ResourceCommentsSectionP
       toast.push('Nội dung bình luận tối thiểu 5 ký tự', 'error');
       return;
     }
-    await addMutation.mutateAsync({
-      author: user.displayName,
-      userRole: user.role,
-      content: content.trim(),
-      rating,
-    });
-    setContent('');
-    toast.push('Đã đăng bình luận và đánh giá!');
+    try {
+      await addMutation.mutateAsync({
+        author: user.displayName,
+        userRole: user.role,
+        content: content.trim(),
+        rating,
+      });
+      setContent('');
+      toast.push('Đã đăng bình luận và đánh giá!');
+    } catch (err: any) {
+      toast.push(err?.message || 'Không thể gửi bình luận, vui lòng thử lại', 'error');
+    }
   };
 
   const handlePostReply = async (parentId: string) => {
@@ -51,15 +55,19 @@ export function ResourceCommentsSection({ resourceId }: ResourceCommentsSectionP
       toast.push('Nội dung phản hồi tối thiểu 3 ký tự', 'error');
       return;
     }
-    await addMutation.mutateAsync({
-      author: user.displayName,
-      userRole: user.role,
-      content: replyContent.trim(),
-      parentId,
-    });
-    setReplyContent('');
-    setReplyToId(null);
-    toast.push('Đã gửi phản hồi!');
+    try {
+      await addMutation.mutateAsync({
+        author: user.displayName,
+        userRole: user.role,
+        content: replyContent.trim(),
+        parentId,
+      });
+      setReplyContent('');
+      setReplyToId(null);
+      toast.push('Đã gửi phản hồi!');
+    } catch (err: any) {
+      toast.push(err?.message || 'Không thể gửi phản hồi, vui lòng thử lại', 'error');
+    }
   };
 
   return (

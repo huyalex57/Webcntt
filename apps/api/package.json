@@ -13,6 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1175.0",
+    "@aws-sdk/s3-request-presigner": "^3.1175.0",
     "@devstudy/shared": "*",
     "@prisma/client": "^6.0.0",
     "argon2": "^0.41.1",

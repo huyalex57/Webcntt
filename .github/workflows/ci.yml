@@ -15,6 +15,31 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: devstudy
+          POSTGRES_PASSWORD: devstudy_secret
+          POSTGRES_DB: devstudy_hub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,7 +47,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
@@ -31,8 +56,26 @@ jobs:
       - name: Build shared package
         run: npm run build:shared
 
-      - name: Run Unit Tests
+      - name: Prisma Deploy & Seed
+        env:
+          DATABASE_URL: postgresql://devstudy:devstudy_secret@localhost:5432/devstudy_hub?schema=public
+        run: |
+          npx --workspace=@devstudy/api prisma generate
+          npx --workspace=@devstudy/api prisma migrate deploy
+          npm run prisma:seed --workspace=@devstudy/api
+
+      - name: Run Unit & Integration Tests
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://devstudy:devstudy_secret@localhost:5432/devstudy_hub?schema=public
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: super_secret_jwt_access_key_change_in_production_12345
+          COOKIE_SECRET: super_secret_cookie_signing_key_12345
+          S3_ENDPOINT: http://localhost:9000
+          S3_BUCKET: devstudy-resources
+          S3_ACCESS_KEY: minioadmin
+          S3_SECRET_KEY: minioadmin
         run: npm run test
 
-      - name: Type-check & Build web application
+      - name: Type-check & Build monorepo
         run: npm run build

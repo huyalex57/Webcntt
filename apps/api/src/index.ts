@@ -8,6 +8,11 @@ import { logger } from './config/logger.js';
 import { prisma } from './config/prisma.js';
 import { redis } from './config/redis.js';
 import { authRouter, usersRouter } from './modules/auth/auth.routes.js';
+import {
+  adminResourcesRouter,
+  resourcesRouter,
+} from './modules/resources/resources.routes.js';
+import { codeRouter } from './modules/code/code.routes.js';
 import { requireAuth } from './middlewares/requireAuth.js';
 import { requireRole } from './middlewares/requireRole.js';
 import { requirePlan } from './middlewares/requirePlan.js';
@@ -24,7 +29,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser(env.COOKIE_SECRET));
 app.use(pinoHttp({ logger, autoLogging: env.NODE_ENV !== 'test' }));
 
@@ -81,6 +86,9 @@ app.get(
 // API Routes
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', usersRouter);
+app.use('/api/v1/resources', resourcesRouter);
+app.use('/api/v1/admin/resources', adminResourcesRouter);
+app.use('/api/v1/code', codeRouter);
 
 if (process.env.NODE_ENV !== 'test') {
   app.listen(env.PORT, () => {
