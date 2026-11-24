@@ -94,7 +94,7 @@ export function GeneratePathFormModal({
               )}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid items-end gap-3 sm:grid-cols-2">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Trình độ hiện tại
@@ -111,7 +111,7 @@ export function GeneratePathFormModal({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Quỹ thời gian dành cho khoá học (giờ / tuần)
+                  Thời lượng học (giờ / tuần)
                 </label>
                 <input
                   type="number"

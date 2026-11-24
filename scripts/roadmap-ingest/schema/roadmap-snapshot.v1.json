@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ai-review/roadmap-snapshot.v1",
+  "title": "NormalizedRoadmapSnapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "repoUrl",
+    "webUrl",
+    "commitSha",
+    "licenseSha256",
+    "licenseName",
+    "licenseOption",
+    "attribution",
+    "snapshotChecksum",
+    "roadmaps"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "repoUrl": { "type": "string", "minLength": 1 },
+    "webUrl": { "type": "string", "minLength": 1 },
+    "commitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "licenseSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "licenseName": { "type": "string", "minLength": 1 },
+    "licenseOption": { "enum": ["A", "B", "C"] },
+    "attribution": { "type": "string", "minLength": 1 },
+    "snapshotChecksum": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "roadmaps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "slug", "title", "orderIndex", "sourceUrl", "topics"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^rm:[a-z0-9-]+$" },
+          "slug": { "type": "string", "pattern": "^[a-z0-9-]{1,64}$" },
+          "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "description": { "type": ["string", "null"] },
+          "orderIndex": { "type": "integer", "minimum": 0 },
+          "sourceUrl": { "type": "string", "pattern": "^https?://" },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "parentId", "kind", "title", "orderIndex", "sourceUrl"],
+              "properties": {
+                "id": { "type": "string", "pattern": "^rm:[a-z0-9-]+:[a-z0-9:_-]{1,128}$" },
+                "parentId": { "type": ["string", "null"] },
+                "kind": { "enum": ["topic", "subtopic"] },
+                "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+                "summary": { "type": ["string", "null"], "maxLength": 600 },
+                "year": { "type": ["integer", "null"], "minimum": 1990, "maximum": 2100 },
+                "resourceFormat": { "type": ["string", "null"], "maxLength": 64 },
+                "orderIndex": { "type": "integer", "minimum": 0 },
+                "sourceUrl": { "type": "string", "pattern": "^https?://" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

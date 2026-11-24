@@ -7,11 +7,11 @@ import type {
   EvaluateMilestoneResponse,
 } from '@devstudy/shared';
 
-export function useCourseLearningPath(courseId: string) {
+export function useCourseLearningPath(courseId: string, userId?: string | null) {
   return useQuery({
-    queryKey: ['learning-path', courseId],
+    queryKey: ['learning-path', courseId, userId ?? 'anon'],
     queryFn: () => apiClient<LearningPath | null>(`/courses/${courseId}/learning-path`),
-    enabled: !!courseId,
+    enabled: !!courseId && Boolean(userId),
   });
 }
 
@@ -24,7 +24,7 @@ export function useGenerateLearningPath(courseId: string) {
         body: JSON.stringify(data),
       }),
     onSuccess: (newPath) => {
-      qc.setQueryData(['learning-path', courseId], newPath);
+      qc.setQueryData(['learning-path', courseId, newPath.userId ?? 'anon'], newPath);
       qc.invalidateQueries({ queryKey: ['learning-path', courseId] });
     },
   });

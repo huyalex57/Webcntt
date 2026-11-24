@@ -21,13 +21,14 @@ export default function CourseDetailPage() {
   const nav = useNavigate();
   const [paid, setPaid] = useState(false);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const [highlightedLessonId, setHighlightedLessonId] = useState<string | null>(null);
 
   const enrollments = useEnrollments();
   const buy = useBuyCourse();
   const markDone = useMarkLessonDone(id);
   const enrollment = enrollments.find((e) => e.courseId === id);
 
-  const { data: learningPath } = useCourseLearningPath(id);
+  const { data: learningPath } = useCourseLearningPath(id, user?.id);
   const generatePathMutation = useGenerateLearningPath(id);
 
   if (isLoading) return <p className="text-sm text-slate-500">Đang tải…</p>;
@@ -66,6 +67,34 @@ export default function CourseDetailPage() {
     }
   };
 
+  const handleReviewLesson = (lesson: { lessonId: string; title: string }) => {
+    const allLessons = c.sections.flatMap((s) => s.lessons);
+    const normalizedTarget = lesson.title.trim().toLowerCase();
+    const matched =
+      allLessons.find((l) => l.id === lesson.lessonId) ??
+      allLessons.find((l) => l.title.trim().toLowerCase() === normalizedTarget) ??
+      allLessons.find((l) => l.title.trim().toLowerCase().includes(normalizedTarget)) ??
+      allLessons[0];
+
+    if (matched) {
+      setHighlightedLessonId(matched.id);
+      requestAnimationFrame(() => {
+        const el =
+          document.getElementById(`lesson-${matched.id}`) ??
+          document.getElementById('course-syllabus');
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    } else {
+      document.getElementById('course-syllabus')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+    toast.push(`Đang mở lại bài học cần ôn tập: ${lesson.title}`, 'info');
+  };
+
   return (
     <div>
       <PageHeader
@@ -89,7 +118,11 @@ export default function CourseDetailPage() {
         <div className="space-y-4 lg:col-span-2">
           {/* AI Learning Path Banner / Timeline if exists */}
           {learningPath ? (
-            <LearningPathTimeline path={learningPath} courseId={id} />
+            <LearningPathTimeline
+              path={learningPath}
+              courseId={id}
+              onReviewLesson={handleReviewLesson}
+            />
           ) : (enrollment || paid) ? (
             <Card className="p-5 border-dashed border-indigo-300 bg-indigo-50/40 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div>
@@ -125,7 +158,7 @@ export default function CourseDetailPage() {
             </div>
           </Card>
 
-          <SyllabusAccordion sections={c.sections} />
+          <SyllabusAccordion sections={c.sections} highlightedLessonId={highlightedLessonId} />
 
           {enrollment && (
             <Card className="p-5">

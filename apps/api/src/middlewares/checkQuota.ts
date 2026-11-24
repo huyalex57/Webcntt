@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, type RequestHandler } from 'express';
 import {
   FREE_AI_QUOTA_PER_DAY,
   FREE_RUN_QUOTA_PER_DAY,
@@ -10,6 +10,17 @@ import { redis } from '../config/redis.js';
 import { sendError } from '../utils/response.js';
 
 export type QuotaFeature = 'ai_questions' | 'code_run';
+export type QuotaDelegate = (feature: QuotaFeature) => RequestHandler | null;
+
+let quotaDelegate: QuotaDelegate | null = null;
+
+/**
+ * Cho phép module plug-and-play (được đăng ký ở host integration) thay thế cơ chế quota
+ * cho một feature cụ thể (ví dụ `ai_questions`) mà core không cần import module đó.
+ */
+export function registerQuotaDelegate(delegate: QuotaDelegate | null): void {
+  quotaDelegate = delegate;
+}
 
 declare global {
   namespace Express {
@@ -66,6 +77,11 @@ export async function getQuotaUsage(feature: QuotaFeature, userId: string, plan:
 
 export function checkQuota(feature: QuotaFeature) {
   return async (req: Request, res: Response, next: NextFunction) => {
+    const delegated = quotaDelegate?.(feature);
+    if (delegated) {
+      return delegated(req, res, next);
+    }
+
     if (!req.user) {
       return sendError(res, 'Yêu cầu đăng nhập', 401, 'UNAUTHORIZED');
     }

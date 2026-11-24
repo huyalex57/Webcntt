@@ -1,0 +1,22 @@
+{
+  "repoUrl": "https://github.com/liuchong/awesome-roadmaps.git",
+  "webUrl": "https://github.com/liuchong/awesome-roadmaps",
+  "commitSha": "04bc0b1494864c36251bde2ef06b257ffaf2fcc6",
+  "readmeFile": "README.md",
+  "licenseFile": "LICENSE",
+  "licenseName": "0PL-1.0 (Zero Public License)",
+  "licenseOption": "C",
+  "expectedLicenseSha256": "5cd22bebbd2c87fede8dc0dbc482fc122aa1d8151f44f4759140d555e80cc5bf",
+  "attribution": "Curated roadmap index from liuchong/awesome-roadmaps (Zero Public License 1.0)",
+  "allowedSections": [
+    "programming-language",
+    "web-development",
+    "mobile-development",
+    "infrastructure-operations",
+    "game-development",
+    "ai-machine-learning-data-science",
+    "security",
+    "miscellaneous",
+    "articles-books"
+  ]
+}

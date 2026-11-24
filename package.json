@@ -9,9 +9,25 @@
   "scripts": {
     "dev": "npm run dev --workspace=@devstudy/web",
     "dev:api": "npm run dev --workspace=@devstudy/api",
-    "build": "npm run build:shared && npm run build --workspace=@devstudy/api && npm run build --workspace=@devstudy/web",
+    "build": "npm run build:shared && npm run build:ai-review && npm run build --workspace=@devstudy/api && npm run build --workspace=@devstudy/web",
     "build:shared": "npm run build --workspace=@devstudy/shared",
+    "build:ai-review": "node -e \"if (require('fs').existsSync('packages/ai-review')) require('child_process').execSync('npm run build --workspace=@devstudy/ai-review', { stdio: 'inherit' })\"",
+    "check:boundaries": "node scripts/check-module-boundaries.mjs",
+    "verify:core-without-module": "node scripts/verify-core-without-module.mjs",
     "lint": "echo 'No linter configured yet'",
-    "test": "npm run test --workspace=@devstudy/web && npm run test --workspace=@devstudy/api"
+    "test:ai-review": "node -e \"if (require('fs').existsSync('packages/ai-review')) require('child_process').execSync('npm run test --workspace=@devstudy/ai-review', { stdio: 'inherit' })\"",
+    "test": "npm run test --workspace=@devstudy/web && npm run test --workspace=@devstudy/api && npm run test:ai-review"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "oxlint": "^1.94.0"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "argon2@0.41.1": true,
+    "esbuild@0.21.5": true,
+    "esbuild@0.28.2": true,
+    "@prisma/engines@6.12.0": true,
+    "prisma@6.12.0": true
   }
 }

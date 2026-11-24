@@ -34,8 +34,34 @@ export default function LoginPage() {
           <Button type="submit" disabled={isSubmitting} className="w-full">{isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập vào hệ thống DevStudy Hub'}</Button>
         </form>
         <div className="mt-4 space-y-2">
-          <Button variant="outline" className="w-full" onClick={() => { void login('huy.nd@edu.vn', 'demo123').then(() => { toast.push('Đã đăng nhập demo: STUDENT Free'); nav('/dashboard'); }); }}>Đăng nhập nhanh demo — STUDENT Free</Button>
-          <Button variant="outline" className="w-full" onClick={() => { void login('bao.tq@hust.edu.vn', 'demo123').then(() => { toast.push('Đã đăng nhập demo: LECTURER Premium'); nav('/dashboard'); }); }}>Đăng nhập nhanh demo — LECTURER Premium</Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              void login('huy.nd@edu.vn', 'password123')
+                .then(() => {
+                  toast.push('Đã đăng nhập demo: STUDENT Free');
+                  nav(loc.state?.redirect ?? '/dashboard');
+                })
+                .catch(() => setServerError('Không thể đăng nhập tài khoản demo STUDENT Free.'));
+            }}
+          >
+            Đăng nhập nhanh demo — STUDENT Free
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              void login('bao.tq@hust.edu.vn', 'password123')
+                .then(() => {
+                  toast.push('Đã đăng nhập demo: LECTURER Premium');
+                  nav(loc.state?.redirect ?? '/dashboard');
+                })
+                .catch(() => setServerError('Không thể đăng nhập tài khoản demo LECTURER Premium.'));
+            }}
+          >
+            Đăng nhập nhanh demo — LECTURER Premium
+          </Button>
         </div>
         <p className="mt-4 text-center text-sm text-slate-500">Chưa có tài khoản? <Link to="/register" className="font-semibold text-primary">Đăng ký miễn phí</Link></p>
         <p className="mt-2 text-center text-xs text-slate-400">Mock auth: access token chỉ lưu in-memory; refresh mô phỏng. Tài khoản demo xem ở README.</p>

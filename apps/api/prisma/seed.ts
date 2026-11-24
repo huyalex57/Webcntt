@@ -14,6 +14,7 @@ import {
   RunStatus,
 } from '@prisma/client';
 import argon2 from 'argon2';
+import { seedPracticeBankAndHistory } from './seed-questions.js';
 
 const prisma = new PrismaClient();
 
@@ -667,6 +668,8 @@ async function main() {
         { email: { startsWith: 'quota_test_' } },
         { email: { startsWith: 'quota_code_' } },
         { email: { startsWith: 'playground_free_' } },
+        { email: { startsWith: 'practice_p0_' } },
+        { email: { startsWith: 'quota_p2_' } },
       ],
     },
   });
@@ -1676,6 +1679,11 @@ int main() {
     });
     console.log(`✓ Seeded SkillProfiles & Enrollment for ${studentLinh.email}`);
   }
+
+  // ==========================================
+  // Phase 0 - Seed Question Bank & Practice Attempt History
+  // ==========================================
+  await seedPracticeBankAndHistory(prisma, userMap, adminId);
 
   console.log('✅ Database seeding completed successfully!');
 }

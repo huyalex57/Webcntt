@@ -7,9 +7,10 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { PlanTier, Role, User, UpdateProfileInput } from '@devstudy/shared';
 import { loadJSON, saveJSON } from '../../lib/utils';
-import { apiClient, setAccessToken, getAccessToken } from '../../lib/api-client';
+import { apiClient, refreshSession, setAccessToken, getAccessToken } from '../../lib/api-client';
 
 export interface DemoIdentity {
   key: string;
@@ -53,6 +54,7 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 interface AuthValue {
   user: User | null;
   demoKey: string;
+  isAuthReady?: boolean;
   getToken: () => string | null;
   login: (email: string, password: string) => Promise<User>;
   register: (name: string, email: string, studentId?: string, university?: string, password?: string) => Promise<User>;
@@ -68,7 +70,11 @@ interface AuthValue {
 const AuthCtx = createContext<AuthValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(() => loadJSON<User | null>('session-user', null));
+  const [isAuthReady, setIsAuthReady] = useState<boolean>(
+    () => USE_MOCK || loadJSON<User | null>('session-user', null) === null
+  );
   const [demoKey, setDemoKey] = useState<string>(() => {
     const saved = loadJSON<User | null>('session-user', null);
     if (!saved) return 'guest';
@@ -86,21 +92,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Kiểm tra phiên đăng nhập từ Backend khi ứng dụng load (refresh cookie)
   useEffect(() => {
-    if (USE_MOCK) return;
+    if (USE_MOCK) {
+      setIsAuthReady(true);
+      return;
+    }
+
+    const savedUser = loadJSON<User | null>('session-user', null);
+    if (!savedUser) {
+      setIsAuthReady(true);
+      return;
+    }
 
     let mounted = true;
-    apiClient<{ accessToken: string; user: User }>('/auth/refresh', { method: 'POST' })
+    refreshSession<User>()
       .then((res) => {
         if (!mounted) return;
-        setAccessToken(res.accessToken);
-        persist(res.user, 'student-free');
+        const match = DEMO_IDENTITIES.find((d) => d.user?.email === res.user.email);
+        persist(res.user, match ? match.key : 'student-free');
       })
-      .catch(() => {
+      .catch((err: any) => {
         if (!mounted) return;
-        // Nếu không có cookie hợp lệ thì chuyển về guest nếu đang không dùng mock
-        if (!loadJSON<User | null>('session-user', null)) {
+        // Nếu cookie không tồn tại/hết hạn/không hợp lệ (401/403) -> xoá session cũ để tránh vòng lặp 401
+        if (err?.status === 401 || err?.status === 403) {
+          setAccessToken(null);
           persist(null, 'guest');
         }
+      })
+      .finally(() => {
+        if (mounted) setIsAuthReady(true);
       });
 
     return () => {
@@ -114,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const found = DEMO_IDENTITIES.find((d) => d.user?.email === email)?.user;
       const u = found ?? mk('u-' + Date.now(), email, email.split('@')[0], 'STUDENT', 'FREE');
       setAccessToken('mock-access-' + Math.random().toString(36).slice(2));
+      queryClient.clear();
       const key = DEMO_IDENTITIES.find((d) => d.user?.email === email)?.key ?? 'student-free';
       persist(u, key);
       return u;
@@ -125,10 +145,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     setAccessToken(res.accessToken);
+    queryClient.clear();
     const match = DEMO_IDENTITIES.find((d) => d.user?.email === res.user.email);
     persist(res.user, match ? match.key : 'student-free');
+    setIsAuthReady(true);
     return res.user;
-  }, []);
+  }, [queryClient]);
 
   const register = useCallback(
     async (name: string, email: string, studentId?: string, university?: string, password = 'password123') => {
@@ -136,7 +158,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await new Promise((r) => setTimeout(r, 600));
         const u = mk('u-' + Date.now(), email, name, 'STUDENT', 'FREE', studentId, university);
         setAccessToken('mock-access-' + Math.random().toString(36).slice(2));
+        queryClient.clear();
         persist(u, 'student-free');
+        setIsAuthReady(true);
         return u;
       }
 
@@ -154,10 +178,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       setAccessToken(res.accessToken);
+      queryClient.clear();
       persist(res.user, 'student-free');
+      setIsAuthReady(true);
       return res.user;
     },
-    []
+    [queryClient]
   );
 
   const logout = useCallback(async () => {
@@ -169,20 +195,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     setAccessToken(null);
+    queryClient.clear();
     persist(null, 'guest');
-  }, []);
+    setIsAuthReady(true);
+  }, [queryClient]);
 
   const switchDemo = useCallback(async (key: string) => {
     const d = DEMO_IDENTITIES.find((x) => x.key === key);
     if (!d || !d.user) {
+      if (!USE_MOCK) {
+        try {
+          await apiClient('/auth/logout', { method: 'POST' });
+        } catch {
+          // bỏ qua lỗi mạng khi đăng xuất demo
+        }
+      }
       setAccessToken(null);
+      queryClient.clear();
       persist(null, 'guest');
+      setIsAuthReady(true);
       return;
     }
 
     if (USE_MOCK) {
       setAccessToken('mock-access-demo-' + key);
+      queryClient.clear();
       persist(d.user, key);
+      setIsAuthReady(true);
       return;
     }
 
@@ -193,13 +232,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email: d.user.email, password: 'password123' }),
       });
       setAccessToken(res.accessToken);
+      queryClient.clear();
       persist(res.user, key);
+      setIsAuthReady(true);
     } catch {
       // Fallback nếu server chưa có user
       setAccessToken('mock-access-demo-' + key);
+      queryClient.clear();
       persist(d.user, key);
+      setIsAuthReady(true);
     }
-  }, []);
+  }, [queryClient]);
 
   const upgradeToPremium = useCallback(() => {
     setUser((u) => {
@@ -289,6 +332,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       demoKey,
+      isAuthReady,
       getToken,
       login,
       register,
@@ -303,6 +347,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       user,
       demoKey,
+      isAuthReady,
       getToken,
       login,
       register,

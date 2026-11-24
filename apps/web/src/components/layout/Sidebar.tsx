@@ -43,7 +43,7 @@ export function Sidebar() {
                   Đang dùng
                 </span>
               </div>
-              <p className="mt-1">AI không giới hạn · Sandbox 1 GB · 200 lần chạy/ngày.</p>
+              <p className="mt-1">30 bộ đề AI/ngày · Sandbox 1 GB · 200 lần chạy/ngày.</p>
               <Link to="/pricing" className="mt-2 inline-block font-semibold text-primary">
                 Xem chi tiết quyền lợi →
               </Link>
@@ -51,7 +51,7 @@ export function Sidebar() {
           ) : (
             <>
               <p className="font-semibold text-ink">Gói Free</p>
-              <p className="mt-1">AI 10 câu/ngày · Sandbox 256 MB · 30 lần chạy/ngày.</p>
+              <p className="mt-1">3 bộ đề AI/ngày · Sandbox 256 MB · 30 lần chạy/ngày.</p>
               <Link to="/pricing" className="mt-2 inline-block font-semibold text-primary">
                 Nâng cấp Premium →
               </Link>

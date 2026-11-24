@@ -6,12 +6,14 @@ interface MilestoneRemediationCardProps {
   remediation: MilestoneRemediation;
   onComplete: () => Promise<void>;
   isCompleting: boolean;
+  onReviewLesson?: (lesson: { lessonId: string; title: string }) => void;
 }
 
 export function MilestoneRemediationCard({
   remediation,
   onComplete,
   isCompleting,
+  onReviewLesson,
 }: MilestoneRemediationCardProps) {
   const [activeTab, setActiveTab] = useState<'lessons' | 'practice'>('lessons');
   const [practiceAnswers, setPracticeAnswers] = useState<Record<string, number>>({});
@@ -85,7 +87,13 @@ export function MilestoneRemediationCard({
                 <span className="font-medium text-slate-900 block">{item.title}</span>
                 <span className="text-slate-500 text-[11px]">{item.reason}</span>
               </div>
-              <Button variant="outline" className="px-2.5 py-1 text-xs shrink-0 self-start sm:self-auto">
+              <Button
+                variant="outline"
+                className="px-2.5 py-1 text-xs shrink-0 self-start sm:self-auto"
+                onClick={() =>
+                  onReviewLesson?.({ lessonId: item.lessonId, title: item.title })
+                }
+              >
                 Học lại bài này
               </Button>
             </div>

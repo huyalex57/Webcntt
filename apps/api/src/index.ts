@@ -14,6 +14,7 @@ import {
 } from './modules/resources/resources.routes.js';
 import { codeRouter } from './modules/code/code.routes.js';
 import { learningPathRouter } from './modules/learning-path/learning-path.routes.js';
+import { practiceRouter } from './modules/practice/practice.routes.js';
 import { requireAuth } from './middlewares/requireAuth.js';
 import { requireRole } from './middlewares/requireRole.js';
 import { requirePlan } from './middlewares/requirePlan.js';
@@ -90,10 +91,59 @@ app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/resources', resourcesRouter);
 app.use('/api/v1/admin/resources', adminResourcesRouter);
 app.use('/api/v1/code', codeRouter);
+app.use('/api/v1/practice', practiceRouter);
 app.use('/api/v1', learningPathRouter);
 
+// Optional plug-and-play module mount (@devstudy/ai-review)
+// Flag mặc định tắt -> KHÔNG dynamic-import package, route /api/v1/ai-review/* trả 404.
+// Sử dụng biến đường dẫn động để việc gỡ bỏ module không làm hỏng bước biên dịch core.
+let optionalStopHooks: Array<() => Promise<void>> = [];
+
+export async function initOptionalModules(): Promise<void> {
+  if (process.env.AI_REVIEW_ENABLED !== 'true') {
+    return;
+  }
+
+  const integrationPath = './integrations/ai-review/index.js';
+  const integration = (await import(integrationPath)) as {
+    mountAiReviewModule: (
+      targetApp: typeof app
+    ) => Promise<{ stop: () => Promise<void> } | null>;
+  };
+  const instance = await integration.mountAiReviewModule(app);
+  if (instance) {
+    optionalStopHooks.push(() => instance.stop());
+  }
+}
+
+export async function stopOptionalModules(): Promise<void> {
+  const hooks = optionalStopHooks;
+  optionalStopHooks = [];
+  for (const stop of hooks) {
+    try {
+      await stop();
+    } catch (err) {
+      logger.error({ err }, 'Error stopping optional module');
+    }
+  }
+}
+
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(env.PORT, () => {
-    logger.info(`🚀 DevStudy Backend API running on port ${env.PORT} in ${env.NODE_ENV} mode`);
-  });
+  initOptionalModules()
+    .then(() => {
+      const server = app.listen(env.PORT, () => {
+        logger.info(`🚀 DevStudy Backend API running on port ${env.PORT} in ${env.NODE_ENV} mode`);
+      });
+
+      const shutdown = async () => {
+        await stopOptionalModules();
+        server.close(() => process.exit(0));
+      };
+      process.once('SIGTERM', shutdown);
+      process.once('SIGINT', shutdown);
+    })
+    .catch((err) => {
+      logger.error({ err }, 'Failed to initialize optional modules');
+      process.exit(1);
+    });
 }

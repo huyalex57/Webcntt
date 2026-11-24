@@ -47,7 +47,9 @@ describe('Code Playground & Judge0 Integration Tests (Issue #36)', () => {
 
   afterAll(async () => {
     globalThis.fetch = originalFetch;
-    await prisma.user.deleteMany({ where: { id: freeStudentId } });
+    if (freeStudentId) {
+      await prisma.user.deleteMany({ where: { id: freeStudentId } });
+    }
     await prisma.$disconnect();
     redis.disconnect();
   });

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ai-review/exam-set-create.v1",
+  "title": "CreatePersonalizedExamSetRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["goal"],
+  "properties": {
+    "student_id": {
+      "description": "Tùy chọn; nếu truyền vào bắt buộc khớp chính xác userId phiên hiện tại",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{8,64}$"
+    },
+    "goal": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 200
+    },
+    "topics": {
+      "type": "array",
+      "maxItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": ["CTDL", "OOP", "CSDL", "MANG", "HDH", "AI_DS", "WEB_CLOUD"]
+      }
+    },
+    "roadmap_topic_ids": {
+      "type": "array",
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^rm:[a-z0-9-]+:[A-Za-z0-9_-]{1,64}$"
+      }
+    },
+    "num_questions": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 50,
+      "default": 20
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["easy", "medium", "hard", "adaptive"],
+      "default": "adaptive"
+    },
+    "exam_ids": {
+      "description": "Danh sách ID câu hỏi ứng viên đề xuất (backend luôn đối chiếu pool APPROVED)",
+      "type": "array",
+      "maxItems": 100,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_-]{1,64}$"
+      }
+    },
+    "exclude_recent_days": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 60,
+      "default": 7
+    },
+    "rationale": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "use_ai": {
+      "description": "Tùy chọn: bật AI xếp hạng câu hỏi từ pool APPROVED (mặc định false để giữ tương thích)",
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

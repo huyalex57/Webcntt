@@ -20,6 +20,8 @@ export interface PracticeConfigFormProps {
   used: number;
   quotaLimit: number;
   isPending: boolean;
+  /** Hide legacy local quota bar when real @devstudy/ai-review quota card is shown */
+  hideLegacyQuota?: boolean;
   onTopicChange: (t: Topic) => void;
   onLevelChange: (l: Level) => void;
   onCountChange: (c: number) => void;
@@ -35,6 +37,7 @@ export function PracticeConfigForm({
   used,
   quotaLimit,
   isPending,
+  hideLegacyQuota = false,
   onTopicChange,
   onLevelChange,
   onCountChange,
@@ -65,7 +68,7 @@ export function PracticeConfigForm({
       </Field>
       <Field label="Số câu hỏi">
         <Select value={count} onChange={(e) => onCountChange(Number(e.target.value))}>
-          {[3, 5, 10].map((n) => (
+          {[5, 10, 20].map((n) => (
             <option key={n} value={n}>
               {n} câu
             </option>
@@ -81,22 +84,24 @@ export function PracticeConfigForm({
           ))}
         </Select>
       </Field>
-      <div className="rounded border border-border bg-surface p-3">
-        <QuotaBar used={used} limit={quotaLimit} label="Quota AI hôm nay" />
-        <p className="mt-1 text-xs text-slate-500">
-          Free: 10 câu/ngày, reset 00:00. Premium: không giới hạn + phân tích sâu.
-        </p>
-      </div>
-      <Button className="w-full" disabled={isPending} onClick={onGenerate}>
-        {isPending ? 'AI đang sinh câu hỏi…' : 'Tạo bộ câu hỏi'}
+      {!hideLegacyQuota && (
+        <div className="rounded border border-border bg-surface p-3">
+          <QuotaBar used={used} limit={quotaLimit} label="Quota luyện tập hôm nay" />
+          <p className="mt-1 text-xs text-slate-500">
+            Free: giới hạn cơ bản theo ngày. Premium: mở rộng hạn mức và phân tích sâu.
+          </p>
+        </div>
+      )}
+      <Button className="w-full" variant="outline" disabled={isPending} onClick={onGenerate}>
+        {isPending ? 'Đang tải câu hỏi…' : 'Luyện theo chủ đề từ ngân hàng câu hỏi'}
       </Button>
-      {remaining < count && (
+      {!hideLegacyQuota && remaining < count && (
         <p className="text-sm text-red-600">
           Hết quota Free —{' '}
           <Link to="/pricing" className="font-semibold underline">
             nâng cấp Premium
           </Link>{' '}
-          để tiếp tục (mock trả 429).
+          để tiếp tục.
         </p>
       )}
     </div>

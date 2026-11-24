@@ -9,9 +9,14 @@ import { useToast } from '../../../lib/toast';
 interface LearningPathTimelineProps {
   path: LearningPath;
   courseId: string;
+  onReviewLesson?: (lesson: { lessonId: string; title: string }) => void;
 }
 
-export function LearningPathTimeline({ path, courseId }: LearningPathTimelineProps) {
+export function LearningPathTimeline({
+  path,
+  courseId,
+  onReviewLesson,
+}: LearningPathTimelineProps) {
   const toast = useToast();
   const [selectedMilestoneForQuiz, setSelectedMilestoneForQuiz] = useState<Milestone | null>(null);
 
@@ -93,8 +98,8 @@ export function LearningPathTimeline({ path, courseId }: LearningPathTimelinePro
         <div className="mt-4">
           <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
             <div
-              className="h-full bg-primary transition-all duration-500"
-              style={{ width: `${path.progressPercent}%` }}
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${Math.min(100, Math.max(0, path.progressPercent))}%` }}
             />
           </div>
         </div>
@@ -191,6 +196,7 @@ export function LearningPathTimeline({ path, courseId }: LearningPathTimelinePro
                     remediation={m.remediation}
                     onComplete={() => handleCompleteRemediation(m.remediation!.id)}
                     isCompleting={completeRemediationMutation.isPending}
+                    onReviewLesson={onReviewLesson}
                   />
                 )}
               </Card>

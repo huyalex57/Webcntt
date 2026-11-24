@@ -1,0 +1,227 @@
+// Isolated Prisma schema for @devstudy/ai-review (Postgres schema: ai_review)
+// KHÔNG có foreign key sang bảng của core (schema public) để đảm bảo gỡ module độc lập.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@ai-review/prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("AI_REVIEW_DATABASE_URL")
+}
+
+model ModuleMeta {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("module_meta")
+}
+
+// ==========================================
+// Phase 2 - Plan Quotas & Usage Metering (schema ai_review)
+// ==========================================
+
+model PlanLimit {
+  planCode   String   @map("plan_code")
+  metric     String
+  period     String
+  limitValue Int?     @map("limit_value")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@id([planCode, metric])
+  @@map("plan_limits")
+}
+
+model UsageCounter {
+  userId    String   @map("user_id")
+  metric    String
+  periodKey String   @map("period_key")
+  used      Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([userId, metric, periodKey])
+  @@index([periodKey])
+  @@map("usage_counters")
+}
+
+model UsageEvent {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  metric        String
+  amount        Int
+  planCode      String   @map("plan_code")
+  periodKey     String   @map("period_key")
+  limitSnapshot Int?     @map("limit_snapshot")
+  requestId     String?  @map("request_id")
+  modelId       String?  @map("model_id")
+  inputTokens   Int      @default(0) @map("input_tokens")
+  outputTokens  Int      @default(0) @map("output_tokens")
+  latencyMs     Int      @default(0) @map("latency_ms")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([userId, metric, periodKey])
+  @@index([createdAt])
+  @@map("usage_events")
+}
+
+// ==========================================
+// Phase 3 - Security: Idempotency Keys & Audit Events (schema ai_review)
+// ==========================================
+
+model IdempotencyKey {
+  userId       String   @map("user_id")
+  key          String
+  requestHash  String   @map("request_hash")
+  status       String   @default("IN_PROGRESS")
+  httpStatus   Int?     @map("http_status")
+  responseJson Json?    @map("response_json")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@id([userId, key])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  actorType  String   @map("actor_type")
+  userId     String?  @map("user_id")
+  action     String
+  resource   String
+  resourceId String?  @map("resource_id")
+  outcome    String
+  requestId  String?  @map("request_id")
+  tokenJti   String?  @map("token_jti")
+  meta       Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([createdAt])
+  @@map("audit_events")
+}
+
+// ==========================================
+// Phase 4 - Personalized Exam Sets (20-Q MCQ, schema ai_review)
+// ==========================================
+
+model ExamSet {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  goal             String
+  params           Json
+  source           String   // 'llm' | 'hybrid' | 'rule_based'
+  modelId          String?  @map("model_id")
+  rationale        String?
+  requested        Int      @default(20)
+  fulfilled        Int
+  rejectedCount    Int      @default(0) @map("rejected_count")
+  filledByFallback Int      @default(0) @map("filled_by_fallback")
+  status           String   @default("CREATED")
+  idempotencyKey   String?  @map("idempotency_key")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  items ExamSetItem[]
+
+  @@index([userId, createdAt])
+  @@map("exam_sets")
+}
+
+model ExamSetItem {
+  examSetId  String @map("exam_set_id")
+  position   Int
+  questionId String @map("question_id")
+  topic      String
+  difficulty String
+  reasonCode String @map("reason_code")
+
+  examSet ExamSet @relation(fields: [examSetId], references: [id], onDelete: Cascade)
+
+  @@id([examSetId, position])
+  @@unique([examSetId, questionId])
+  @@index([questionId])
+  @@map("exam_set_items")
+}
+
+// ==========================================
+// Phase 5 - Roadmaps & Topic-Tag Mapping (schema ai_review)
+// ==========================================
+
+model RoadmapSource {
+  id               String    @id @default(cuid())
+  repoUrl          String    @map("repo_url")
+  commitSha        String    @map("commit_sha")
+  licenseSha256    String    @map("license_sha256")
+  licenseName      String    @map("license_name")
+  licenseOption    String    @default("C") @map("license_option")
+  attribution      String
+  snapshotChecksum String    @map("snapshot_checksum")
+  ingestedAt       DateTime  @default(now()) @map("ingested_at")
+
+  roadmaps Roadmap[]
+
+  @@unique([repoUrl, commitSha])
+  @@map("roadmap_sources")
+}
+
+model Roadmap {
+  id           String    @id
+  slug         String    @unique
+  title        String
+  description  String?
+  orderIndex   Int       @default(0) @map("order_index")
+  sourceId     String    @map("source_id")
+  sourceUrl    String    @map("source_url")
+  deprecatedAt DateTime? @map("deprecated_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  source RoadmapSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  topics RoadmapTopic[]
+
+  @@index([deprecatedAt, orderIndex])
+  @@map("roadmaps")
+}
+
+model RoadmapTopic {
+  id             String    @id
+  roadmapId      String    @map("roadmap_id")
+  parentId       String?   @map("parent_id")
+  kind           String    @default("topic") // 'topic' | 'subtopic'
+  title          String
+  summary        String?
+  year           Int?
+  resourceFormat String?   @map("resource_format")
+  orderIndex     Int       @default(0) @map("order_index")
+  sourceUrl      String    @map("source_url")
+  deprecatedAt   DateTime? @map("deprecated_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  roadmap  Roadmap        @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  parent   RoadmapTopic?  @relation("TopicHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children RoadmapTopic[] @relation("TopicHierarchy")
+  tagMaps  TopicTagMap[]
+
+  @@index([roadmapId, parentId, orderIndex])
+  @@index([deprecatedAt])
+  @@map("roadmap_topics")
+}
+
+model TopicTagMap {
+  topicId    String    @map("topic_id")
+  tagCode    String    @map("tag_code")
+  weight     Float     @default(1.0)
+  origin     String    @default("manual") // 'auto' | 'manual'
+  reviewedBy String?   @map("reviewed_by")
+  reviewedAt DateTime? @map("reviewed_at")
+
+  topic RoadmapTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([topicId, tagCode])
+  @@index([tagCode])
+  @@map("topic_tag_map")
+}

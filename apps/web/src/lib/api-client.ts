@@ -1,14 +1,10 @@
-import type { ApiResponse, ApiResponseMeta } from '@devstudy/shared';
+import type { ApiResponseMeta } from '@devstudy/shared';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
 
 // Token in-memory
 let inMemoryAccessToken: string | null = null;
-let isRefreshing = false;
-let failedQueue: Array<{
-  resolve: (token: string) => void;
-  reject: (err: any) => void;
-}> = [];
+let refreshPromise: Promise<{ accessToken: string; user?: any }> | null = null;
 
 export function setAccessToken(token: string | null) {
   inMemoryAccessToken = token;
@@ -18,16 +14,53 @@ export function getAccessToken(): string | null {
   return inMemoryAccessToken;
 }
 
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token!);
+export function refreshSession<TUser = any>(): Promise<{ accessToken: string; user: TUser }> {
+  if (refreshPromise) {
+    return refreshPromise as Promise<{ accessToken: string; user: TUser }>;
+  }
+
+  refreshPromise = (async () => {
+    let refreshRes: Response;
+    try {
+      refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+    } catch {
+      throw {
+        message: 'Không thể kết nối đến máy chủ API',
+        status: 0,
+        code: 'NETWORK_ERROR',
+      };
     }
+
+    let refreshJson: any = null;
+    try {
+      refreshJson = await refreshRes.json();
+    } catch {
+      refreshJson = null;
+    }
+
+    if (!refreshRes.ok || !refreshJson?.data?.accessToken) {
+      setAccessToken(null);
+      throw (
+        refreshJson?.error || {
+          message: 'Refresh failed',
+          status: refreshRes.status,
+        }
+      );
+    }
+
+    const newToken = refreshJson.data.accessToken as string;
+    setAccessToken(newToken);
+    return refreshJson.data as { accessToken: string; user: TUser };
+  })().finally(() => {
+    refreshPromise = null;
   });
-  failedQueue = [];
-};
+
+  return refreshPromise as Promise<{ accessToken: string; user: TUser }>;
+}
 
 async function executeRequest<T>(
   endpoint: string,
@@ -36,6 +69,21 @@ async function executeRequest<T>(
   const url = endpoint.startsWith('http')
     ? endpoint
     : `${API_BASE}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+
+  const isAuthEndpoint =
+    endpoint.includes('/auth/refresh') ||
+    endpoint.includes('/auth/login') ||
+    endpoint.includes('/auth/register');
+
+  // Chờ phiên refresh đang chạy nền (tránh gọi /auth/refresh trùng lặp gây Token Reuse Detection)
+  let waitedRefreshFailed = false;
+  if (!inMemoryAccessToken && refreshPromise && !isAuthEndpoint) {
+    try {
+      await refreshPromise;
+    } catch {
+      waitedRefreshFailed = true;
+    }
+  }
 
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
@@ -63,65 +111,41 @@ async function executeRequest<T>(
     };
   }
 
-  // Xử lý 401: Thử refresh token
+  // Xử lý 401: Thử refresh token (gộp chung một promise để tránh xoay vòng trùng)
   if (
     response.status === 401 &&
+    !waitedRefreshFailed &&
     !endpoint.includes('/auth/refresh') &&
     !endpoint.includes('/auth/login')
   ) {
-    if (isRefreshing) {
-      return new Promise<{ data: T; meta?: ApiResponseMeta }>((resolve, reject) => {
-        failedQueue.push({
-          resolve: async (newToken: string) => {
-            headers.set('Authorization', `Bearer ${newToken}`);
-            try {
-              const retryRes = await fetch(url, { ...config, headers });
-              const json = (await retryRes.json()) as ApiResponse<T>;
-              if (!retryRes.ok) throw (json as any)?.error;
-              resolve({ data: json.data, meta: json.meta });
-            } catch (retryErr) {
-              reject(retryErr);
-            }
-          },
-          reject: (err) => reject(err),
-        });
-      });
-    }
-
-    isRefreshing = true;
-
     try {
-      const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-
-      const refreshJson = await refreshRes.json();
-
-      if (!refreshRes.ok || !refreshJson.data?.accessToken) {
-        throw refreshJson.error || new Error('Refresh failed');
-      }
-
-      const newToken = refreshJson.data.accessToken;
-      setAccessToken(newToken);
-      processQueue(null, newToken);
+      const { accessToken: newToken } = await refreshSession();
 
       headers.set('Authorization', `Bearer ${newToken}`);
       const retryResponse = await fetch(url, { ...config, headers });
-      const retryJson = (await retryResponse.json()) as ApiResponse<T>;
-
-      if (!retryResponse.ok) {
-        throw (retryJson as any)?.error;
+      let retryJson: any = null;
+      try {
+        retryJson = await retryResponse.json();
+      } catch {
+        retryJson = null;
       }
 
-      return { data: retryJson.data, meta: retryJson.meta };
+      if (!retryResponse.ok) {
+        throw (
+          retryJson?.error || {
+            message: `Yêu cầu thất bại với mã lỗi HTTP ${retryResponse.status}`,
+            status: retryResponse.status,
+          }
+        );
+      }
+
+      return {
+        data: (retryJson?.data !== undefined ? retryJson.data : retryJson) as T,
+        meta: retryJson?.meta,
+      };
     } catch (refreshErr) {
-      processQueue(refreshErr, null);
       setAccessToken(null);
       throw refreshErr;
-    } finally {
-      isRefreshing = false;
     }
   }
 
